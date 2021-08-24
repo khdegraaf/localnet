@@ -1,0 +1,98 @@
+package run
+
+import (
+	"context"
+	"errors"
+	"os"
+	"os/signal"
+	"path/filepath"
+	"sync"
+	"syscall"
+
+	"github.com/ridge/must"
+	"github.com/ridge/parallel"
+	"github.com/spf13/pflag"
+	"github.com/wojciech-malota-wojcik/ioc"
+	"github.com/wojciech-sif/localnet/lib/logger"
+	"go.uber.org/zap"
+)
+
+// AppRunner is used to run application
+type AppRunner func(appFunc parallel.Task)
+
+var mu sync.Mutex
+
+// Tool runs tool app
+func Tool(appName string, setupFunc interface{}) {
+	c := ioc.New()
+	c.Call(run(context.Background(), filepath.Base(appName), setupFunc, parallel.Exit))
+}
+
+func parsePflag() bool {
+	mu.Lock()
+	defer mu.Unlock()
+
+	if !pflag.Parsed() {
+		pflag.Parse()
+		return true
+	}
+	return false
+}
+
+func run(ctx context.Context, appName string, setupFunc interface{}, exit parallel.OnExit) func(c *ioc.Container) {
+	changeWorkingDir()
+	isRootApp := parsePflag()
+	return func(c *ioc.Container) {
+		c.Singleton(func() AppRunner {
+			return func(appFunc parallel.Task) {
+				exitCode := 0
+				log := logger.Get(newContext())
+				if appName != "" && appName != "." {
+					log = log.Named(appName)
+				}
+				ctx := logger.WithLogger(ctx, log)
+				defer func() {
+					if isRootApp && exitCode != 0 {
+						os.Exit(exitCode)
+					}
+				}()
+
+				err := parallel.Run(ctx, func(ctx context.Context, spawn parallel.SpawnFn) error {
+					spawn("", exit, func(ctx context.Context) error {
+						defer func() {
+							_ = log.Sync()
+						}()
+
+						c.Singleton(func() context.Context {
+							return ctx
+						})
+						return appFunc(ctx)
+					})
+					spawn("signals", parallel.Exit, func(ctx context.Context) error {
+						sigs := make(chan os.Signal, 1)
+						signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+						select {
+						case <-ctx.Done():
+							return ctx.Err()
+						case sig := <-sigs:
+							log.Info("Signal received, terminating...", zap.Stringer("signal", sig))
+						}
+						return nil
+					})
+					return nil
+				})
+
+				if err != nil && !errors.Is(err, ctx.Err()) {
+					log.Error("Application returned error", zap.Error(err))
+					exitCode = 1
+				}
+			}
+		})
+		c.Call(setupFunc)
+	}
+}
+
+func changeWorkingDir() {
+	must.OK(os.Chdir(filepath.Dir(filepath.Dir(must.String(filepath.EvalSymlinks(must.String(os.Executable())))))))
+}

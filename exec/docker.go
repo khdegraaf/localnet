@@ -1,7 +1,6 @@
 package exec
 
 import (
-	"context"
 	"os/exec"
 )
 
@@ -17,6 +16,6 @@ func init() {
 }
 
 // Docker runs docker command
-func Docker(ctx context.Context, args ...string) error {
-	return Run(ctx, exec.Command(docker, args...))
+func Docker(args ...string) *exec.Cmd {
+	return exec.Command(docker, args...)
 }

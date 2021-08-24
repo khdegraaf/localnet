@@ -5,18 +5,20 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os/exec"
+	osexec "os/exec"
+
+	"github.com/wojciech-sif/localnet/exec"
 )
 
 func gitFetch(ctx context.Context) error {
-	return runCmd(ctx, exec.Command("git", "fetch", "-p"))
+	return exec.Run(ctx, osexec.Command("git", "fetch", "-p"))
 }
 
 func gitStatusClean(ctx context.Context) error {
 	buf := &bytes.Buffer{}
-	cmd := exec.Command("git", "status", "-s")
+	cmd := osexec.Command("git", "status", "-s")
 	cmd.Stdout = buf
-	if err := runCmd(ctx, cmd); err != nil {
+	if err := exec.Run(ctx, cmd); err != nil {
 		return err
 	}
 	if buf.Len() > 0 {

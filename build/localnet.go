@@ -2,9 +2,10 @@ package build
 
 import (
 	"context"
-	"os/exec"
+	osexec "os/exec"
 
 	"github.com/wojciech-malota-wojcik/build"
+	"github.com/wojciech-sif/localnet/exec"
 )
 
 func buildApp(ctx context.Context) error {
@@ -13,5 +14,5 @@ func buildApp(ctx context.Context) error {
 
 func runApp(ctx context.Context, deps build.DepsFunc) error {
 	deps(buildApp)
-	return runCmd(ctx, exec.Command("./bin/localnet"))
+	return exec.Run(ctx, osexec.Command("./bin/localnet"))
 }

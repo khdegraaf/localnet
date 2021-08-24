@@ -14,10 +14,10 @@ const sessionName = "localnet"
 func main() {
 	run.Tool("localnet", func(appRunner run.AppRunner, c *ioc.Container) {
 		appRunner(func(ctx context.Context) error {
-			if exec.TmateNoOut(ctx, "has-session", "-t", sessionName) != nil {
-				must.OK(exec.Tmate(ctx, "new-session", "-d", "-s", sessionName, "-n", "help", "bash"))
+			if exec.TMuxNoOut(ctx, "has-session", "-t", sessionName) != nil {
+				must.OK(exec.TMux(ctx, "new-session", "-d", "-s", sessionName, "-n", "help", "bash"))
 			}
-			must.OK(exec.TmateTty(ctx, "attach-session", "-t", sessionName))
+			must.OK(exec.TMuxTty(ctx, "attach-session", "-t", sessionName))
 			return nil
 		})
 	})

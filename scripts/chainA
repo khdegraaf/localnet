@@ -1,0 +1,38 @@
+#!/bin/bash
+
+set -e
+
+CHAIN_NAME="sifchain-a"
+HOME_DIR="$HOME/.localnet/$CHAIN_NAME"
+MNEMONIC="race draft rival universe maid cheese steel logic crowd fork comic easy truth drift tomorrow eye buddy head time cash swing swift midnight borrow"
+IP="127.0.0.1"
+
+sifnoded init "$CHAIN_NAME" --chain-id="$CHAIN_NAME" \
+  --home="$HOME_DIR" -o
+
+echo "$MNEMONIC" | sifnoded keys add "$CHAIN_NAME" \
+  --home="$HOME_DIR" \
+  --recover \
+  --keyring-backend=test
+
+sifnoded add-genesis-account $(sifnoded keys show "$CHAIN_NAME" -a --home="$HOME_DIR" --keyring-backend=test) 500000000000000000000000rowan,990000000000000000000000000stake \
+  --home="$HOME_DIR" \
+  --keyring-backend=test
+
+sifnoded add-genesis-validators $(sifnoded keys show "$CHAIN_NAME" -a --bech val --home="$HOME_DIR" --keyring-backend=test) \
+  --home="$HOME_DIR" \
+  --keyring-backend=test
+
+sifnoded gentx "$CHAIN_NAME" 1000000000000000000000000stake \
+  --chain-id="$CHAIN_NAME" \
+  --home="$HOME_DIR" \
+  --keyring-backend=test
+
+sifnoded collect-gentxs --home="$HOME_DIR"
+
+sifnoded start \
+  --home="$HOME_DIR" \
+  --rpc.laddr="tcp://$IP:26657" \
+  --p2p.laddr="tcp://$IP:26656" \
+  --grpc.address="$IP:9090" \
+  --rpc.pprof_laddr="$IP:6060"

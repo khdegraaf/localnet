@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io/ioutil"
 	"os"
 	osexec "os/exec"
 	"strings"
@@ -13,12 +14,6 @@ import (
 	"github.com/wojciech-sif/localnet/infra"
 )
 
-var home string
-
-func init() {
-	home = must.String(os.UserHomeDir()) + "/.localnet"
-}
-
 // NewSifchain creates new sifchain app
 func NewSifchain(name, ip string) *Sifchain {
 	return &Sifchain{
@@ -27,7 +22,7 @@ func NewSifchain(name, ip string) *Sifchain {
 	}
 }
 
-// Sifchain represents
+// Sifchain represents sifchain
 type Sifchain struct {
 	name string
 	ip   string
@@ -35,9 +30,9 @@ type Sifchain struct {
 
 // Deploy deploys sifchain app to the target
 func (s *Sifchain) Deploy(ctx context.Context, target infra.Target) error {
-	home := home + "/" + s.name
+	sifchainHome := home + "/" + s.name
 	sifnoded := func(args ...string) *osexec.Cmd {
-		return osexec.Command("sifnoded", append([]string{"--home", home}, args...)...)
+		return osexec.Command("sifnoded", append([]string{"--home", sifchainHome}, args...)...)
 	}
 	sifnodedOut := func(buf *bytes.Buffer, args ...string) *osexec.Cmd {
 		cmd := sifnoded(args...)
@@ -45,22 +40,27 @@ func (s *Sifchain) Deploy(ctx context.Context, target infra.Target) error {
 		return cmd
 	}
 
-	if err := os.RemoveAll(home); err != nil && !errors.Is(err, os.ErrNotExist) {
+	if err := os.RemoveAll(sifchainHome); err != nil && !errors.Is(err, os.ErrNotExist) {
 		panic(err)
 	}
-	must.OK(os.MkdirAll(home, 0o700))
+	must.OK(os.MkdirAll(sifchainHome, 0o700))
 
 	keyName := s.name
+	keyData := &bytes.Buffer{}
 	accountAddrBuf := &bytes.Buffer{}
 	accountAddrBechBuf := &bytes.Buffer{}
 	err := exec.Run(ctx,
-		sifnoded("keys", "add", keyName, "--no-backup", "--keyring-backend", "test"),
+		sifnodedOut(keyData, "keys", "add", keyName, "--output", "json", "--keyring-backend", "test"),
 		sifnodedOut(accountAddrBuf, "keys", "show", keyName, "-a", "--keyring-backend", "test"),
 		sifnodedOut(accountAddrBechBuf, "keys", "show", keyName, "-a", "--bech", "val", "--keyring-backend", "test"),
 	)
 	if err != nil {
 		return err
 	}
+
+	must.OK(ioutil.WriteFile(home+"/"+s.name+".json", keyData.Bytes(), 0o600))
+
+	// FIXME (wojciech): create genesis file manually
 	err = exec.Run(ctx,
 		sifnoded("init", s.name, "--chain-id", s.name, "-o"),
 		sifnoded("add-genesis-account", strings.TrimSuffix(accountAddrBuf.String(), "\n"), "500000000000000000000000rowan,990000000000000000000000000stake", "--keyring-backend", "test"),
@@ -76,7 +76,7 @@ func (s *Sifchain) Deploy(ctx context.Context, target infra.Target) error {
 		Path: "sifnoded",
 		Args: []string{
 			"start",
-			"--home", home,
+			"--home", sifchainHome,
 			"--rpc.laddr", "tcp://" + s.ip + ":26657",
 			"--p2p.laddr", "tcp://" + s.ip + ":26656",
 			"--grpc.address", s.ip + ":9090",

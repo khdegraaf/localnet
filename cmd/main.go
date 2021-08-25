@@ -40,6 +40,7 @@ func main() {
 				env := env{
 					apps.NewSifchain("sifchain-a", "127.0.0.1"),
 					apps.NewSifchain("sifchain-b", "127.0.0.2"),
+					apps.NewHermes("hermes", "127.0.0.3", "sifchain-a", "127.0.0.1", "sifchain-b", "127.0.0.2"),
 				}
 				if err := env.Deploy(ctx, target); err != nil {
 					return err

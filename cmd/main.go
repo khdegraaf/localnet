@@ -11,19 +11,14 @@ import (
 	"github.com/wojciech-sif/localnet/tmux"
 )
 
-type app interface {
-	Deploy(ctx context.Context, target infra.Target) error
-}
-
-type env []app
-
-func (e env) Deploy(ctx context.Context, t infra.Target) error {
-	for _, app := range e {
-		if err := app.Deploy(ctx, t); err != nil {
-			return err
-		}
+func env() infra.Env {
+	sifchainA := apps.NewSifchain("sifchain-a", "127.0.0.1")
+	sifchainB := apps.NewSifchain("sifchain-b", "127.0.0.2")
+	return infra.Env{
+		sifchainA,
+		sifchainB,
+		apps.NewHermes("hermes", "127.0.0.3", sifchainA, sifchainB),
 	}
-	return nil
 }
 
 func main() {
@@ -37,14 +32,7 @@ func main() {
 			}
 			if newSession {
 				target := targets.NewTMux(session)
-				sifchainA := apps.NewSifchain("sifchain-a", "127.0.0.1")
-				sifchainB := apps.NewSifchain("sifchain-b", "127.0.0.2")
-				env := env{
-					sifchainA,
-					sifchainB,
-					apps.NewHermes("hermes", "127.0.0.3", sifchainA, sifchainB),
-				}
-				if err := env.Deploy(ctx, target); err != nil {
+				if err := env().Deploy(ctx, target); err != nil {
 					return err
 				}
 			}

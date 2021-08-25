@@ -2,6 +2,24 @@ package infra
 
 import "context"
 
+// App is the interface exposed by application
+type App interface {
+	Deploy(ctx context.Context, target Target) error
+}
+
+// Env is the environment to deploy
+type Env []App
+
+// Deploy deploys app in environment to the target
+func (e Env) Deploy(ctx context.Context, t Target) error {
+	for _, app := range e {
+		if err := app.Deploy(ctx, t); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Target represents target of deployment
 type Target interface {
 	// DeployBinary deploys binary to the target

@@ -39,8 +39,8 @@ func (s *Sifchain) IP() string {
 }
 
 // Deploy deploys sifchain app to the target
-func (s *Sifchain) Deploy(ctx context.Context, target infra.Target) error {
-	sifchainHome := home + "/" + s.name
+func (s *Sifchain) Deploy(ctx context.Context, config infra.Config, target infra.Target) error {
+	sifchainHome := config.HomeDir + "/" + s.name
 	sifnoded := func(args ...string) *osexec.Cmd {
 		return osexec.Command("sifnoded", append([]string{"--home", sifchainHome}, args...)...)
 	}
@@ -68,7 +68,7 @@ func (s *Sifchain) Deploy(ctx context.Context, target infra.Target) error {
 		return err
 	}
 
-	must.OK(ioutil.WriteFile(home+"/"+s.name+".json", keyData.Bytes(), 0o600))
+	must.OK(ioutil.WriteFile(config.HomeDir+"/"+s.name+".json", keyData.Bytes(), 0o600))
 
 	// FIXME (wojciech): create genesis file manually
 	err = exec.Run(ctx,

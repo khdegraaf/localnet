@@ -41,14 +41,14 @@ type Hermes struct {
 }
 
 // Deploy deploys sifchain app to the target
-func (h *Hermes) Deploy(ctx context.Context, target infra.Target) error {
+func (h *Hermes) Deploy(ctx context.Context, config infra.Config, target infra.Target) error {
 	// FIXME (wojciech): implement healthchecks instead of this hack
 	time.Sleep(10 * time.Second)
 
-	hermesHome := home + "/" + h.name
-	config := hermesHome + "/config.toml"
+	hermesHome := config.HomeDir + "/" + h.name
+	configFile := hermesHome + "/config.toml"
 	hermes := func(args ...string) *osexec.Cmd {
-		return osexec.Command("hermes", append([]string{"--config", config}, args...)...)
+		return osexec.Command("hermes", append([]string{"--config", configFile}, args...)...)
 	}
 
 	if err := os.RemoveAll(hermesHome); err != nil && !errors.Is(err, os.ErrNotExist) {
@@ -103,11 +103,11 @@ clock_drift = '5s'
 trusting_period = '14days'
 trust_threshold = { numerator = '1', denominator = '3' }
 `
-	must.OK(ioutil.WriteFile(config, []byte(cfg), 0o600))
+	must.OK(ioutil.WriteFile(configFile, []byte(cfg), 0o600))
 
 	err := exec.Run(ctx,
-		hermes("keys", "add", h.chainA.ID(), "--file", home+"/"+h.chainA.ID()+".json"),
-		hermes("keys", "add", h.chainB.ID(), "--file", home+"/"+h.chainB.ID()+".json"),
+		hermes("keys", "add", h.chainA.ID(), "--file", config.HomeDir+"/"+h.chainA.ID()+".json"),
+		hermes("keys", "add", h.chainB.ID(), "--file", config.HomeDir+"/"+h.chainB.ID()+".json"),
 		hermes("create", "channel", h.chainA.ID(), h.chainB.ID(), "--port-a", "transfer", "--port-b", "transfer"),
 	)
 	if err != nil {
@@ -117,7 +117,7 @@ trust_threshold = { numerator = '1', denominator = '3' }
 		Name: h.name,
 		Path: "hermes",
 		Args: []string{
-			"--config", config,
+			"--config", configFile,
 			"start",
 		},
 	})

@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"os"
 
+	"github.com/ridge/must"
 	"github.com/wojciech-malota-wojcik/ioc"
 	"github.com/wojciech-sif/localnet/infra"
 	"github.com/wojciech-sif/localnet/infra/apps"
@@ -21,18 +23,26 @@ func env() infra.Env {
 	}
 }
 
+// FIXME (wojciech): read it from CLI
+const envName = "default"
+
 func main() {
 	run.Tool("localnet", func(appRunner run.AppRunner, c *ioc.Container) {
 		appRunner(func(ctx context.Context) error {
-			// FIXME (wojciech): pass session name from CLI
-			session := tmux.NewSession("localnet")
+			// FIXME (wojciech): read config from CLI
+			config := infra.Config{
+				EnvName: envName,
+				HomeDir: must.String(os.UserHomeDir()) + "/.localnet/" + envName,
+			}
+
+			session := tmux.NewSession("localnet-" + config.EnvName)
 			newSession, err := session.Init(ctx)
 			if err != nil {
 				return err
 			}
 			if newSession {
 				target := targets.NewTMux(session)
-				if err := env().Deploy(ctx, target); err != nil {
+				if err := env().Deploy(ctx, config, target); err != nil {
 					return err
 				}
 			}

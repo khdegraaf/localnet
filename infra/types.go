@@ -4,16 +4,16 @@ import "context"
 
 // App is the interface exposed by application
 type App interface {
-	Deploy(ctx context.Context, target Target) error
+	Deploy(ctx context.Context, config Config, target Target) error
 }
 
 // Env is the environment to deploy
 type Env []App
 
 // Deploy deploys app in environment to the target
-func (e Env) Deploy(ctx context.Context, t Target) error {
+func (e Env) Deploy(ctx context.Context, config Config, t Target) error {
 	for _, app := range e {
-		if err := app.Deploy(ctx, t); err != nil {
+		if err := app.Deploy(ctx, config, t); err != nil {
 			return err
 		}
 	}

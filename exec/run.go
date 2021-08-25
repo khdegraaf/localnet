@@ -7,10 +7,14 @@ import (
 	"syscall"
 
 	"github.com/ridge/parallel"
+	"github.com/wojciech-sif/localnet/lib/logger"
+	"go.uber.org/zap"
 )
 
 // Run executes commands sequentially and terminates the running one gracefully if context is cancelled
 func Run(ctx context.Context, cmds ...*exec.Cmd) error {
+	log := logger.Get(ctx)
+
 	for _, cmd := range cmds {
 		cmd := cmd
 		if cmd.Stdout == nil {
@@ -19,6 +23,7 @@ func Run(ctx context.Context, cmds ...*exec.Cmd) error {
 		if cmd.Stderr == nil {
 			cmd.Stderr = os.Stderr
 		}
+		log.Info("Executing command", zap.String("cmd", cmd.String()))
 		if err := cmd.Start(); err != nil {
 			return err
 		}

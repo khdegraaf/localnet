@@ -5,6 +5,7 @@ import (
 
 	"github.com/wojciech-malota-wojcik/ioc"
 	"github.com/wojciech-sif/localnet/infra"
+	"github.com/wojciech-sif/localnet/infra/apps"
 	"github.com/wojciech-sif/localnet/infra/targets"
 	"github.com/wojciech-sif/localnet/lib/run"
 	"github.com/wojciech-sif/localnet/tmux"
@@ -14,10 +15,10 @@ type app interface {
 	Deploy(ctx context.Context, target infra.Target) error
 }
 
-type apps []app
+type env []app
 
-func (apps apps) Deploy(ctx context.Context, t infra.Target) error {
-	for _, app := range apps {
+func (e env) Deploy(ctx context.Context, t infra.Target) error {
+	for _, app := range e {
 		if err := app.Deploy(ctx, t); err != nil {
 			return err
 		}
@@ -36,17 +37,11 @@ func main() {
 			}
 			if newSession {
 				target := targets.NewTMux(session)
-				apps := apps{
-					infra.Binary{
-						Name: "bash1",
-						Path: "bash",
-					},
-					infra.Binary{
-						Name: "bash2",
-						Path: "bash",
-					},
+				env := env{
+					apps.NewSifchain("sifchain-a", "127.0.0.1"),
+					apps.NewSifchain("sifchain-b", "127.0.0.2"),
 				}
-				if err := apps.Deploy(ctx, target); err != nil {
+				if err := env.Deploy(ctx, target); err != nil {
 					return err
 				}
 			}

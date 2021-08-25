@@ -13,26 +13,31 @@ import (
 	"github.com/wojciech-sif/localnet/infra"
 )
 
+// SifchainPeer is the interface required by hermes to be able to connect to sifchain
+type SifchainPeer interface {
+	// ID returns chain id
+	ID() string
+
+	// IP returns ip used for connection
+	IP() string
+}
+
 // NewHermes creates new hermes app
-func NewHermes(name, ip, chainID1, ip1, chainID2, ip2 string) *Hermes {
+func NewHermes(name, ip string, chainA, chainB SifchainPeer) *Hermes {
 	return &Hermes{
-		name:     name,
-		ip:       ip,
-		chainID1: chainID1,
-		chainID2: chainID2,
-		ip1:      ip1,
-		ip2:      ip2,
+		name:   name,
+		ip:     ip,
+		chainA: chainA,
+		chainB: chainB,
 	}
 }
 
 // Hermes represents hermes relayer
 type Hermes struct {
-	name     string
-	ip       string
-	chainID1 string
-	chainID2 string
-	ip1      string
-	ip2      string
+	name   string
+	ip     string
+	chainA SifchainPeer
+	chainB SifchainPeer
 }
 
 // Deploy deploys sifchain app to the target
@@ -63,13 +68,13 @@ host = '` + h.ip + `'
 port = 3001
 
 [[chains]]
-id = '` + h.chainID1 + `'
-rpc_addr = 'http://` + h.ip1 + `:26657'
-grpc_addr = 'http://` + h.ip1 + `:9090'
-websocket_addr = 'ws://` + h.ip1 + `:26657/websocket'
+id = '` + h.chainA.ID() + `'
+rpc_addr = 'http://` + h.chainA.IP() + `:26657'
+grpc_addr = 'http://` + h.chainA.IP() + `:9090'
+websocket_addr = 'ws://` + h.chainA.IP() + `:26657/websocket'
 rpc_timeout = '10s'
 account_prefix = 'sif'
-key_name = '` + h.chainID1 + `'
+key_name = '` + h.chainA.ID() + `'
 store_prefix = 'ibc'
 max_gas = 3000000
 gas_price = { price = 0.001, denom = 'stake' }
@@ -81,13 +86,13 @@ trusting_period = '14days'
 trust_threshold = { numerator = '1', denominator = '3' }
 
 [[chains]]
-id = '` + h.chainID2 + `'
-rpc_addr = 'http://` + h.ip2 + `:26657'
-grpc_addr = 'http://` + h.ip2 + `:9090'
-websocket_addr = 'ws://` + h.ip2 + `:26657/websocket'
+id = '` + h.chainB.ID() + `'
+rpc_addr = 'http://` + h.chainB.IP() + `:26657'
+grpc_addr = 'http://` + h.chainB.IP() + `:9090'
+websocket_addr = 'ws://` + h.chainB.IP() + `:26657/websocket'
 rpc_timeout = '10s'
 account_prefix = 'sif'
-key_name = '` + h.chainID2 + `'
+key_name = '` + h.chainB.ID() + `'
 store_prefix = 'ibc'
 max_gas = 3000000
 gas_price = { price = 0.001, denom = 'stake' }
@@ -101,9 +106,9 @@ trust_threshold = { numerator = '1', denominator = '3' }
 	must.OK(ioutil.WriteFile(config, []byte(cfg), 0o600))
 
 	err := exec.Run(ctx,
-		hermes("keys", "add", h.chainID1, "--file", home+"/"+h.chainID1+".json"),
-		hermes("keys", "add", h.chainID2, "--file", home+"/"+h.chainID2+".json"),
-		hermes("create", "channel", h.chainID1, h.chainID2, "--port-a", "transfer", "--port-b", "transfer"),
+		hermes("keys", "add", h.chainA.ID(), "--file", home+"/"+h.chainA.ID()+".json"),
+		hermes("keys", "add", h.chainB.ID(), "--file", home+"/"+h.chainB.ID()+".json"),
+		hermes("create", "channel", h.chainA.ID(), h.chainB.ID(), "--port-a", "transfer", "--port-b", "transfer"),
 	)
 	if err != nil {
 		return err

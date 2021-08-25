@@ -28,6 +28,16 @@ type Sifchain struct {
 	ip   string
 }
 
+// ID returns chain ID
+func (s *Sifchain) ID() string {
+	return s.name
+}
+
+// IP returns IP chain listens on
+func (s *Sifchain) IP() string {
+	return s.ip
+}
+
 // Deploy deploys sifchain app to the target
 func (s *Sifchain) Deploy(ctx context.Context, target infra.Target) error {
 	sifchainHome := home + "/" + s.name

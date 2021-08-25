@@ -37,10 +37,12 @@ func main() {
 			}
 			if newSession {
 				target := targets.NewTMux(session)
+				sifchainA := apps.NewSifchain("sifchain-a", "127.0.0.1")
+				sifchainB := apps.NewSifchain("sifchain-b", "127.0.0.2")
 				env := env{
-					apps.NewSifchain("sifchain-a", "127.0.0.1"),
-					apps.NewSifchain("sifchain-b", "127.0.0.2"),
-					apps.NewHermes("hermes", "127.0.0.3", "sifchain-a", "127.0.0.1", "sifchain-b", "127.0.0.2"),
+					sifchainA,
+					sifchainB,
+					apps.NewHermes("hermes", "127.0.0.3", sifchainA, sifchainB),
 				}
 				if err := env.Deploy(ctx, target); err != nil {
 					return err

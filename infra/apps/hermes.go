@@ -3,6 +3,7 @@ package apps
 import (
 	"context"
 	"errors"
+	"net"
 	"os"
 	osexec "os/exec"
 	"time"
@@ -18,7 +19,7 @@ type SifchainPeer interface {
 	ID() string
 
 	// IP returns ip used for connection
-	IP() string
+	IP() net.IP
 }
 
 // NewHermes creates new hermes app
@@ -63,9 +64,9 @@ port = 3001
 
 [[chains]]
 id = '` + h.chainA.ID() + `'
-rpc_addr = 'http://` + h.chainA.IP() + `:26657'
-grpc_addr = 'http://` + h.chainA.IP() + `:9090'
-websocket_addr = 'ws://` + h.chainA.IP() + `:26657/websocket'
+rpc_addr = 'http://` + h.chainA.IP().String() + `:26657'
+grpc_addr = 'http://` + h.chainA.IP().String() + `:9090'
+websocket_addr = 'ws://` + h.chainA.IP().String() + `:26657/websocket'
 rpc_timeout = '10s'
 account_prefix = 'sif'
 key_name = '` + h.chainA.ID() + `'
@@ -81,9 +82,9 @@ trust_threshold = { numerator = '1', denominator = '3' }
 
 [[chains]]
 id = '` + h.chainB.ID() + `'
-rpc_addr = 'http://` + h.chainB.IP() + `:26657'
-grpc_addr = 'http://` + h.chainB.IP() + `:9090'
-websocket_addr = 'ws://` + h.chainB.IP() + `:26657/websocket'
+rpc_addr = 'http://` + h.chainB.IP().String() + `:26657'
+grpc_addr = 'http://` + h.chainB.IP().String() + `:9090'
+websocket_addr = 'ws://` + h.chainB.IP().String() + `:26657/websocket'
 rpc_timeout = '10s'
 account_prefix = 'sif'
 key_name = '` + h.chainB.ID() + `'

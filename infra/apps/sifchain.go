@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"io/ioutil"
+	"net"
 	"os"
 	osexec "os/exec"
 	"strings"
@@ -27,7 +28,7 @@ type Sifchain struct {
 	name string
 
 	mu sync.RWMutex
-	ip string
+	ip net.IP
 }
 
 // ID returns chain ID
@@ -36,7 +37,7 @@ func (s *Sifchain) ID() string {
 }
 
 // IP returns IP chain listens on
-func (s *Sifchain) IP() string {
+func (s *Sifchain) IP() net.IP {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -111,6 +112,6 @@ func (s *Sifchain) Deploy(ctx context.Context, config infra.Config, target infra
 	if err != nil {
 		return err
 	}
-	s.ip = deployment.IP.String()
+	s.ip = deployment.IP
 	return nil
 }

@@ -10,13 +10,11 @@ import (
 )
 
 func main() {
-	run.Tool("build", func(appRunner run.AppRunner, c *ioc.Container) {
+	run.Tool("build", nil, func(ctx context.Context, c *ioc.Container) error {
 		exec := build.NewIoCExecutor(me.Commands, c)
 		if build.Autocomplete(exec) {
-			return
+			return nil
 		}
-		appRunner(func(ctx context.Context) error {
-			return build.Do(ctx, "CMS", exec)
-		})
+		return build.Do(ctx, "CMS", exec)
 	})
 }

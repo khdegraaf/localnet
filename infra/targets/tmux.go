@@ -11,19 +11,38 @@ import (
 )
 
 // NewTMux creates new tmux target
-func NewTMux(session *tmux.Session, startIP net.IP) *TMux {
+func NewTMux(config infra.Config) infra.Target {
 	return &TMux{
-		session:   session,
-		currentIP: startIP,
+		config: config,
 	}
 }
 
 // TMux is the target deploying apps to tmux session
 type TMux struct {
+	config  infra.Config
 	session *tmux.Session
 
 	mu        sync.Mutex
 	currentIP net.IP
+}
+
+// Deploy deploys environment to tmux target
+func (t *TMux) Deploy(ctx context.Context, env infra.Env) error {
+	t.mu.Lock()
+	t.currentIP = t.config.TMuxStartIP
+	t.mu.Unlock()
+
+	session := tmux.NewSession(t.config.EnvName)
+	newSession, err := session.Init(ctx)
+	if err != nil {
+		return err
+	}
+	if newSession {
+		if err := env.Deploy(ctx, t.config, t); err != nil {
+			return err
+		}
+	}
+	return session.Attach(ctx)
 }
 
 // DeployBinary starts binary file inside tmux session

@@ -44,7 +44,7 @@ func (s *Sifchain) IP() string {
 }
 
 // Deploy deploys sifchain app to the target
-func (s *Sifchain) Deploy(ctx context.Context, config infra.Config, target infra.Target) error {
+func (s *Sifchain) Deploy(ctx context.Context, config infra.Config, target infra.AppTarget) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

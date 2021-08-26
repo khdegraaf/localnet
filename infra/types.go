@@ -7,14 +7,14 @@ import (
 
 // App is the interface exposed by application
 type App interface {
-	Deploy(ctx context.Context, config Config, target Target) error
+	Deploy(ctx context.Context, config Config, target AppTarget) error
 }
 
 // Env is the environment to deploy
 type Env []App
 
 // Deploy deploys app in environment to the target
-func (e Env) Deploy(ctx context.Context, config Config, t Target) error {
+func (e Env) Deploy(ctx context.Context, config Config, t AppTarget) error {
 	for _, app := range e {
 		if err := app.Deploy(ctx, config, t); err != nil {
 			return err
@@ -29,8 +29,14 @@ type Deployment struct {
 	IP net.IP
 }
 
-// Target represents target of deployment
+// Target represents target of deployment from the perspective of localnet
 type Target interface {
+	// Deploy deploys environment to the target
+	Deploy(ctx context.Context, env Env) error
+}
+
+// AppTarget represents target of deployment from the perspective of application
+type AppTarget interface {
 	// DeployBinary deploys binary to the target
 	DeployBinary(ctx context.Context, app Binary) (Deployment, error)
 

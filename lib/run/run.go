@@ -23,9 +23,12 @@ type AppRunner func(appFunc parallel.Task)
 var mu sync.Mutex
 
 // Tool runs tool app
-func Tool(appName string, setupFunc interface{}) {
+func Tool(appName string, containerBuilder func(c *ioc.Container), appFunc interface{}) {
 	c := ioc.New()
-	c.Call(run(context.Background(), filepath.Base(appName), setupFunc, parallel.Exit))
+	if containerBuilder != nil {
+		containerBuilder(c)
+	}
+	c.Call(run(context.Background(), filepath.Base(appName), appFunc, parallel.Exit))
 }
 
 func parsePflag() bool {
@@ -43,53 +46,50 @@ func run(ctx context.Context, appName string, setupFunc interface{}, exit parall
 	changeWorkingDir()
 	isRootApp := parsePflag()
 	return func(c *ioc.Container) {
-		c.Singleton(func() AppRunner {
-			return func(appFunc parallel.Task) {
-				exitCode := 0
-				log := logger.Get(newContext())
-				if appName != "" && appName != "." {
-					log = log.Named(appName)
-				}
-				ctx := logger.WithLogger(ctx, log)
+		exitCode := 0
+		log := logger.Get(newContext())
+		if appName != "" && appName != "." {
+			log = log.Named(appName)
+		}
+		ctx := logger.WithLogger(ctx, log)
+		defer func() {
+			if isRootApp && exitCode != 0 {
+				os.Exit(exitCode)
+			}
+		}()
+
+		err := parallel.Run(ctx, func(ctx context.Context, spawn parallel.SpawnFn) error {
+			spawn("", exit, func(ctx context.Context) error {
 				defer func() {
-					if isRootApp && exitCode != 0 {
-						os.Exit(exitCode)
-					}
+					_ = log.Sync()
 				}()
 
-				err := parallel.Run(ctx, func(ctx context.Context, spawn parallel.SpawnFn) error {
-					spawn("", exit, func(ctx context.Context) error {
-						defer func() {
-							_ = log.Sync()
-						}()
-
-						c.Singleton(func() context.Context {
-							return ctx
-						})
-						return appFunc(ctx)
-					})
-					spawn("signals", parallel.Exit, func(ctx context.Context) error {
-						sigs := make(chan os.Signal, 1)
-						signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-
-						select {
-						case <-ctx.Done():
-							return ctx.Err()
-						case sig := <-sigs:
-							log.Info("Signal received, terminating...", zap.Stringer("signal", sig))
-						}
-						return nil
-					})
-					return nil
+				c.Singleton(func() context.Context {
+					return ctx
 				})
+				var err error
+				c.Call(setupFunc, &err)
+				return err
+			})
+			spawn("signals", parallel.Exit, func(ctx context.Context) error {
+				sigs := make(chan os.Signal, 1)
+				signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-				if err != nil && !errors.Is(err, ctx.Err()) {
-					log.Error("Application returned error", zap.Error(err))
-					exitCode = 1
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				case sig := <-sigs:
+					log.Info("Signal received, terminating...", zap.Stringer("signal", sig))
 				}
-			}
+				return nil
+			})
+			return nil
 		})
-		c.Call(setupFunc)
+
+		if err != nil && !errors.Is(err, ctx.Err()) {
+			log.Error("Application returned error", zap.Error(err))
+			exitCode = 1
+		}
 	}
 }
 

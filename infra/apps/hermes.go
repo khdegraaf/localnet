@@ -38,7 +38,7 @@ type Hermes struct {
 }
 
 // Deploy deploys sifchain app to the target
-func (h *Hermes) Deploy(ctx context.Context, config infra.Config, target infra.Target) error {
+func (h *Hermes) Deploy(ctx context.Context, config infra.Config, target infra.AppTarget) error {
 	// FIXME (wojciech): implement healthchecks instead of this hack
 	time.Sleep(10 * time.Second)
 

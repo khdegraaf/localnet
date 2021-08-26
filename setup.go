@@ -13,7 +13,7 @@ import (
 // FIXME (wojciech): read it from CLI
 const (
 	envName = "localnet"
-	target  = "tmux"
+	target  = "docker"
 )
 
 // IoC configures IoC container

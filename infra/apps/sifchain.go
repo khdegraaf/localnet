@@ -83,7 +83,7 @@ func (s *Sifchain) Deploy(ctx context.Context, config infra.Config, target infra
 				sifchainHome,
 			},
 			PreFunc: func(ctx context.Context) error {
-				keyName := s.name
+				keyName := "master"
 				keyData := &bytes.Buffer{}
 				accountAddrBuf := &bytes.Buffer{}
 				accountAddrBechBuf := &bytes.Buffer{}
@@ -113,5 +113,22 @@ func (s *Sifchain) Deploy(ctx context.Context, config infra.Config, target infra
 		return err
 	}
 	s.ip = deployment.IP
+
+	client := `#!/bin/sh
+OPTS=""
+if [ "$1" == "tx" ] || [ "$1" == "q" ]; then
+	OPTS="$OPTS --chain-id ""` + s.name + `"" --node ""tcp://` + s.ip.String() + `:26657"""
+fi
+if [ "$1" == "tx" ] || [ "$1" == "keys" ]; then
+	OPTS="$OPTS --keyring-backend ""test"""
+fi
+
+exec ` + bin + ` --home "` + sifchainHome + `" "$@" $OPTS
+`
+	if err := os.MkdirAll(config.HomeDir+"/bin", 0o700); err != nil && !errors.Is(err, os.ErrExist) {
+		panic(err)
+	}
+
+	must.OK(ioutil.WriteFile(config.HomeDir+"/bin/"+s.name, []byte(client), 0o700))
 	return nil
 }

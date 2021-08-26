@@ -25,7 +25,7 @@ func env() infra.Env {
 }
 
 // FIXME (wojciech): read it from CLI
-const envName = "default"
+const envName = "localnet"
 
 func main() {
 	run.Tool("localnet", func(appRunner run.AppRunner, c *ioc.Container) {
@@ -37,13 +37,13 @@ func main() {
 				TMuxStartIP: net.IPv4(127, 1, 0, 1), // 127.1.0.1
 			}
 
-			session := tmux.NewSession("localnet-" + config.EnvName)
+			session := tmux.NewSession(config.EnvName)
 			newSession, err := session.Init(ctx)
 			if err != nil {
 				return err
 			}
 			if newSession {
-				// target := targets.NewDocker()
+				// target := targets.NewDocker(config.EnvName)
 				target := targets.NewTMux(session, config.TMuxStartIP)
 				if err := env().Deploy(ctx, config, target); err != nil {
 					return err

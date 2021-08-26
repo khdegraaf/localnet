@@ -21,12 +21,15 @@ ENTRYPOINT ["{{ .Path }}"]
 var dockerTpl = template.Must(template.New("").Parse(dockerTplContent))
 
 // NewDocker creates new docker target
-func NewDocker() *Docker {
-	return &Docker{}
+func NewDocker(env string) *Docker {
+	return &Docker{
+		env: env,
+	}
 }
 
 // Docker is the target deploying apps to docker
 type Docker struct {
+	env string
 }
 
 // DeployBinary builds container image out of binary file and starts it in docker
@@ -46,13 +49,13 @@ func (d *Docker) DeployBinary(ctx context.Context, app infra.Binary) (infra.Depl
 	buildCmd := exec.Docker("build", "--tag", image, "-f-", "/")
 	buildCmd.Stdin = buf
 
+	name := d.env + "-" + app.Name
 	ipBuf := &bytes.Buffer{}
-	ipCmd := exec.Docker("inspect", "-f", "{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}", app.Name)
+	ipCmd := exec.Docker("inspect", "-f", "{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}", name)
 	ipCmd.Stdout = ipBuf
 	err := exec.Run(ctx,
 		buildCmd,
-		exec.Docker(append([]string{"run", "--name", app.Name, "-d", image}, app.Args...)...),
-		exec.Docker("inspect", "-f", "{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}", app.Name),
+		exec.Docker(append([]string{"run", "--name", name, "-d", image}, app.Args...)...),
 		ipCmd,
 	)
 	if err != nil {

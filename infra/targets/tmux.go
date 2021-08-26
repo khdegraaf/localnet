@@ -34,7 +34,7 @@ func (t *TMux) DeployBinary(ctx context.Context, app infra.Binary) (infra.Deploy
 		return deployment, err
 	}
 
-	if err := infra.PreprocessApp(ctx, ip.String(), app.AppBase); err != nil {
+	if err := infra.PreprocessApp(ctx, ip, app.AppBase); err != nil {
 		return deployment, err
 	}
 	if err := t.session.StartApp(ctx, app.Name, append([]string{app.Path}, app.Args...)...); err != nil {

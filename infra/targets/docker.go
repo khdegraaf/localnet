@@ -33,7 +33,7 @@ type Docker struct {
 func (d *Docker) DeployBinary(ctx context.Context, app infra.Binary) (infra.Deployment, error) {
 	var deployment infra.Deployment
 
-	if err := infra.PreprocessApp(ctx, "0.0.0.0", app.AppBase); err != nil {
+	if err := infra.PreprocessApp(ctx, net.IPv4zero, app.AppBase); err != nil {
 		return deployment, err
 	}
 
@@ -58,7 +58,7 @@ func (d *Docker) DeployBinary(ctx context.Context, app infra.Binary) (infra.Depl
 	if err != nil {
 		return deployment, err
 	}
-	deployment.IP = net.ParseIP(strings.TrimSuffix(ipBuf.String(), "\n")).To4()
+	deployment.IP = net.ParseIP(strings.TrimSuffix(ipBuf.String(), "\n"))
 	return deployment, nil
 }
 

@@ -4,15 +4,16 @@ import (
 	"bytes"
 	"context"
 	"io/ioutil"
+	"net"
 	"text/template"
 
 	"github.com/ridge/must"
 )
 
 // PreprocessApp runs all the operations required to prepare app to be deployed
-func PreprocessApp(ctx context.Context, ip string, app AppBase) error {
+func PreprocessApp(ctx context.Context, ip net.IP, app AppBase) error {
 	data := struct {
-		IP string
+		IP net.IP
 	}{
 		IP: ip,
 	}

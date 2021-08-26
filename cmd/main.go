@@ -43,6 +43,7 @@ func main() {
 				return err
 			}
 			if newSession {
+				// target := targets.NewDocker()
 				target := targets.NewTMux(session, config.TMuxStartIP)
 				if err := env().Deploy(ctx, config, target); err != nil {
 					return err

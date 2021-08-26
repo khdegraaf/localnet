@@ -48,9 +48,11 @@ func (s *Sifchain) Deploy(ctx context.Context, config infra.Config, target infra
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	const bin = "/home/wojciech/go/bin/sifnoded"
+
 	sifchainHome := config.HomeDir + "/" + s.name
 	sifnoded := func(args ...string) *osexec.Cmd {
-		return osexec.Command("sifnoded", append([]string{"--home", sifchainHome}, args...)...)
+		return osexec.Command(bin, append([]string{"--home", sifchainHome}, args...)...)
 	}
 	sifnodedOut := func(buf *bytes.Buffer, args ...string) *osexec.Cmd {
 		cmd := sifnoded(args...)
@@ -64,7 +66,7 @@ func (s *Sifchain) Deploy(ctx context.Context, config infra.Config, target infra
 	must.OK(os.MkdirAll(sifchainHome, 0o700))
 
 	deployment, err := target.DeployBinary(ctx, infra.Binary{
-		Path: "sifnoded",
+		Path: bin,
 		AppBase: infra.AppBase{
 			Name: s.name,
 			Args: []string{
@@ -74,6 +76,10 @@ func (s *Sifchain) Deploy(ctx context.Context, config infra.Config, target infra
 				"--p2p.laddr", "tcp://{{ .IP }}:26656",
 				"--grpc.address", "{{ .IP }}:9090",
 				"--rpc.pprof_laddr", "{{ .IP }}:6060",
+			},
+			Copy: []string{
+				bin,
+				sifchainHome,
 			},
 			PreFunc: func(ctx context.Context) error {
 				keyName := s.name

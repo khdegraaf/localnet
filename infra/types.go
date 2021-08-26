@@ -64,6 +64,9 @@ type AppBase struct {
 	// Files are the files to be created for application
 	Files []File
 
+	// Copy lists all the files and dirs required by the application
+	Copy []string
+
 	// Func is called to preprocess app
 	PreFunc PreprocessFunc
 }

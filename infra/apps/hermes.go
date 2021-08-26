@@ -42,10 +42,12 @@ func (h *Hermes) Deploy(ctx context.Context, config infra.Config, target infra.T
 	// FIXME (wojciech): implement healthchecks instead of this hack
 	time.Sleep(10 * time.Second)
 
+	const bin = "/home/wojciech/go/bin/hermes"
+
 	hermesHome := config.HomeDir + "/" + h.name
 	configFile := hermesHome + "/config.toml"
 	hermes := func(args ...string) *osexec.Cmd {
-		return osexec.Command("hermes", append([]string{"--config", configFile}, args...)...)
+		return osexec.Command(bin, append([]string{"--config", configFile}, args...)...)
 	}
 
 	cfg := `[global]
@@ -101,7 +103,7 @@ trust_threshold = { numerator = '1', denominator = '3' }
 	must.OK(os.MkdirAll(hermesHome, 0o700))
 
 	_, err := target.DeployBinary(ctx, infra.Binary{
-		Path: "hermes",
+		Path: bin,
 		AppBase: infra.AppBase{
 			Name: h.name,
 			Args: []string{
@@ -114,6 +116,10 @@ trust_threshold = { numerator = '1', denominator = '3' }
 					Content:    []byte(cfg),
 					Preprocess: true,
 				},
+			},
+			Copy: []string{
+				bin,
+				hermesHome,
 			},
 			PreFunc: func(ctx context.Context) error {
 				return exec.Run(ctx,

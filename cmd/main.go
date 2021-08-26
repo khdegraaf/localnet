@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"net"
 	"os"
 
 	"github.com/ridge/must"
@@ -14,12 +15,12 @@ import (
 )
 
 func env() infra.Env {
-	sifchainA := apps.NewSifchain("sifchain-a", "127.0.0.1")
-	sifchainB := apps.NewSifchain("sifchain-b", "127.0.0.2")
+	sifchainA := apps.NewSifchain("sifchain-a")
+	sifchainB := apps.NewSifchain("sifchain-b")
 	return infra.Env{
 		sifchainA,
 		sifchainB,
-		apps.NewHermes("hermes", "127.0.0.3", sifchainA, sifchainB),
+		apps.NewHermes("hermes", sifchainA, sifchainB),
 	}
 }
 
@@ -31,8 +32,9 @@ func main() {
 		appRunner(func(ctx context.Context) error {
 			// FIXME (wojciech): read config from CLI
 			config := infra.Config{
-				EnvName: envName,
-				HomeDir: must.String(os.UserHomeDir()) + "/.localnet/" + envName,
+				EnvName:     envName,
+				HomeDir:     must.String(os.UserHomeDir()) + "/.localnet/" + envName,
+				TMuxStartIP: net.IPv4(127, 1, 0, 1), // 127.1.0.1
 			}
 
 			session := tmux.NewSession("localnet-" + config.EnvName)
@@ -41,7 +43,7 @@ func main() {
 				return err
 			}
 			if newSession {
-				target := targets.NewTMux(session)
+				target := targets.NewTMux(session, config.TMuxStartIP)
 				if err := env().Deploy(ctx, config, target); err != nil {
 					return err
 				}

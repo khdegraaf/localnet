@@ -3,7 +3,6 @@ package apps
 import (
 	"context"
 	"errors"
-	"io/ioutil"
 	"os"
 	osexec "os/exec"
 	"time"
@@ -23,10 +22,9 @@ type SifchainPeer interface {
 }
 
 // NewHermes creates new hermes app
-func NewHermes(name, ip string, chainA, chainB SifchainPeer) *Hermes {
+func NewHermes(name string, chainA, chainB SifchainPeer) *Hermes {
 	return &Hermes{
 		name:   name,
-		ip:     ip,
 		chainA: chainA,
 		chainB: chainB,
 	}
@@ -35,7 +33,6 @@ func NewHermes(name, ip string, chainA, chainB SifchainPeer) *Hermes {
 // Hermes represents hermes relayer
 type Hermes struct {
 	name   string
-	ip     string
 	chainA SifchainPeer
 	chainB SifchainPeer
 }
@@ -51,11 +48,6 @@ func (h *Hermes) Deploy(ctx context.Context, config infra.Config, target infra.T
 		return osexec.Command("hermes", append([]string{"--config", configFile}, args...)...)
 	}
 
-	if err := os.RemoveAll(hermesHome); err != nil && !errors.Is(err, os.ErrNotExist) {
-		panic(err)
-	}
-	must.OK(os.MkdirAll(hermesHome, 0o700))
-
 	cfg := `[global]
 strategy = 'packets'
 filter = false
@@ -64,7 +56,7 @@ clear_packets_interval = 100
 
 [telemetry]
 enabled = true
-host = '` + h.ip + `'
+host = '{{ .IP }}'
 port = 3001
 
 [[chains]]
@@ -103,22 +95,34 @@ clock_drift = '5s'
 trusting_period = '14days'
 trust_threshold = { numerator = '1', denominator = '3' }
 `
-	must.OK(ioutil.WriteFile(configFile, []byte(cfg), 0o600))
-
-	err := exec.Run(ctx,
-		hermes("keys", "add", h.chainA.ID(), "--file", config.HomeDir+"/"+h.chainA.ID()+".json"),
-		hermes("keys", "add", h.chainB.ID(), "--file", config.HomeDir+"/"+h.chainB.ID()+".json"),
-		hermes("create", "channel", h.chainA.ID(), h.chainB.ID(), "--port-a", "transfer", "--port-b", "transfer"),
-	)
-	if err != nil {
-		return err
+	if err := os.RemoveAll(hermesHome); err != nil && !errors.Is(err, os.ErrNotExist) {
+		panic(err)
 	}
-	return target.DeployBinary(ctx, infra.Binary{
-		Name: h.name,
+	must.OK(os.MkdirAll(hermesHome, 0o700))
+
+	_, err := target.DeployBinary(ctx, infra.Binary{
 		Path: "hermes",
-		Args: []string{
-			"--config", configFile,
-			"start",
+		AppBase: infra.AppBase{
+			Name: h.name,
+			Args: []string{
+				"--config", configFile,
+				"start",
+			},
+			Files: []infra.File{
+				{
+					Path:       configFile,
+					Content:    []byte(cfg),
+					Preprocess: true,
+				},
+			},
+			PreFunc: func(ctx context.Context) error {
+				return exec.Run(ctx,
+					hermes("keys", "add", h.chainA.ID(), "--file", config.HomeDir+"/"+h.chainA.ID()+".json"),
+					hermes("keys", "add", h.chainB.ID(), "--file", config.HomeDir+"/"+h.chainB.ID()+".json"),
+					hermes("create", "channel", h.chainA.ID(), h.chainB.ID(), "--port-a", "transfer", "--port-b", "transfer"),
+				)
+			},
 		},
 	})
+	return err
 }

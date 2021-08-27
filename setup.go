@@ -1,8 +1,12 @@
 package localnet
 
 import (
+	"errors"
 	"net"
+	"os"
+	"path/filepath"
 
+	"github.com/ridge/must"
 	"github.com/spf13/cobra"
 	"github.com/wojciech-malota-wojcik/ioc"
 	"github.com/wojciech-sif/localnet/infra"
@@ -68,10 +72,18 @@ type ConfigFactory struct {
 
 // Config produces final config
 func (cf *ConfigFactory) Config() infra.Config {
+	if err := os.MkdirAll(cf.HomeDir, 0o700); err != nil && !errors.Is(err, os.ErrExist) {
+		panic(err)
+	}
+	homeDir := must.String(filepath.Abs(must.String(filepath.EvalSymlinks(cf.HomeDir)))) + "/" + cf.EnvName
+	if err := os.Mkdir(homeDir, 0o700); err != nil && !errors.Is(err, os.ErrExist) {
+		panic(err)
+	}
+
 	return infra.Config{
 		EnvName:     cf.EnvName,
 		Target:      cf.Target,
-		HomeDir:     cf.HomeDir,
+		HomeDir:     homeDir,
 		TMuxNetwork: net.ParseIP(cf.TMuxNetwork),
 	}
 }

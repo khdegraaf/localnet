@@ -23,7 +23,7 @@ func Run(ctx context.Context, cmds ...*exec.Cmd) error {
 		if cmd.Stderr == nil {
 			cmd.Stderr = os.Stderr
 		}
-		log.Info("Executing command", zap.String("cmd", cmd.String()))
+		log.Debug("Executing command", zap.String("cmd", cmd.String()))
 		if err := cmd.Start(); err != nil {
 			return err
 		}

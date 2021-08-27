@@ -49,7 +49,7 @@ func (s *Session) Init(ctx context.Context) (bool, error) {
 
 // StartApp adds application to the session
 func (s *Session) StartApp(ctx context.Context, name string, args ...string) error {
-	return exec.Run(ctx, exec.TMux(append([]string{"new-window", "-d", "-n", name}, args...)...))
+	return exec.Run(ctx, exec.TMux(append([]string{"new-window", "-d", "-n", name, "-t", s.name + ":"}, args...)...))
 }
 
 // Attach attaches terminal to tmux session

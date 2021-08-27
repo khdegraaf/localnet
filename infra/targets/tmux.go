@@ -32,8 +32,8 @@ func (t *TMux) Deploy(ctx context.Context, env infra.Env) error {
 	t.currentIP = t.config.TMuxNetwork
 	t.mu.Unlock()
 
-	session := tmux.NewSession(t.config.EnvName)
-	newSession, err := session.Init(ctx)
+	t.session = tmux.NewSession(t.config.EnvName)
+	newSession, err := t.session.Init(ctx)
 	if err != nil {
 		return err
 	}
@@ -42,7 +42,7 @@ func (t *TMux) Deploy(ctx context.Context, env infra.Env) error {
 			return err
 		}
 	}
-	return session.Attach(ctx)
+	return t.session.Attach(ctx)
 }
 
 // DeployBinary starts binary file inside tmux session

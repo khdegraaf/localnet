@@ -69,7 +69,7 @@ grpc_addr = 'http://` + h.chainA.IP().String() + `:9090'
 websocket_addr = 'ws://` + h.chainA.IP().String() + `:26657/websocket'
 rpc_timeout = '10s'
 account_prefix = 'sif'
-key_name = '` + h.chainA.ID() + `'
+key_name = '` + config.EnvName + "-" + h.chainA.ID() + `'
 store_prefix = 'ibc'
 max_gas = 3000000
 gas_price = { price = 0.001, denom = 'stake' }
@@ -87,7 +87,7 @@ grpc_addr = 'http://` + h.chainB.IP().String() + `:9090'
 websocket_addr = 'ws://` + h.chainB.IP().String() + `:26657/websocket'
 rpc_timeout = '10s'
 account_prefix = 'sif'
-key_name = '` + h.chainB.ID() + `'
+key_name = '` + config.EnvName + "-" + h.chainB.ID() + `'
 store_prefix = 'ibc'
 max_gas = 3000000
 gas_price = { price = 0.001, denom = 'stake' }

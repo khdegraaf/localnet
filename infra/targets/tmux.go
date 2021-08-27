@@ -38,7 +38,7 @@ func (t *TMux) Deploy(ctx context.Context, env infra.Env) error {
 		return err
 	}
 	if newSession {
-		if err := env.Deploy(ctx, t.config, t); err != nil {
+		if err := env.Deploy(ctx, t); err != nil {
 			return err
 		}
 	}

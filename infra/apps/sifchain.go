@@ -1,31 +1,37 @@
 package apps
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"io/ioutil"
 	"net"
 	"os"
-	osexec "os/exec"
-	"strings"
 	"sync"
 
 	"github.com/ridge/must"
-	"github.com/wojciech-sif/localnet/exec"
 	"github.com/wojciech-sif/localnet/infra"
+	"github.com/wojciech-sif/localnet/infra/apps/sifchain"
 )
 
 // NewSifchain creates new sifchain app
-func NewSifchain(name string) *Sifchain {
+func NewSifchain(homeDir string, executor *sifchain.Executor) *Sifchain {
+	if err := os.RemoveAll(executor.Home()); err != nil && !errors.Is(err, os.ErrNotExist) {
+		panic(err)
+	}
+	must.OK(os.MkdirAll(executor.Home(), 0o700))
+
 	return &Sifchain{
-		name: name,
+		homeDir:  homeDir,
+		executor: executor,
+		genesis:  sifchain.NewGenesis(executor),
 	}
 }
 
 // Sifchain represents sifchain
 type Sifchain struct {
-	name string
+	homeDir  string
+	executor *sifchain.Executor
+	genesis  *sifchain.Genesis
 
 	mu sync.RWMutex
 	ip net.IP
@@ -33,7 +39,7 @@ type Sifchain struct {
 
 // ID returns chain ID
 func (s *Sifchain) ID() string {
-	return s.name
+	return s.executor.Name()
 }
 
 // IP returns IP chain listens on
@@ -44,68 +50,34 @@ func (s *Sifchain) IP() net.IP {
 	return s.ip
 }
 
+// Genesis returns configurator of genesis block
+func (s *Sifchain) Genesis() *sifchain.Genesis {
+	return s.genesis
+}
+
 // Deploy deploys sifchain app to the target
-func (s *Sifchain) Deploy(ctx context.Context, config infra.Config, target infra.AppTarget) error {
+func (s *Sifchain) Deploy(ctx context.Context, target infra.AppTarget) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	bin := config.BinDir + "/sifnoded"
-
-	sifchainHome := config.HomeDir + "/" + s.name
-	sifnoded := func(args ...string) *osexec.Cmd {
-		return osexec.Command(bin, append([]string{"--home", sifchainHome}, args...)...)
-	}
-	sifnodedOut := func(buf *bytes.Buffer, args ...string) *osexec.Cmd {
-		cmd := sifnoded(args...)
-		cmd.Stdout = buf
-		return cmd
-	}
-
-	if err := os.RemoveAll(sifchainHome); err != nil && !errors.Is(err, os.ErrNotExist) {
-		panic(err)
-	}
-	must.OK(os.MkdirAll(sifchainHome, 0o700))
-
 	deployment, err := target.DeployBinary(ctx, infra.Binary{
-		Path: bin,
+		Path: s.executor.Bin(),
 		AppBase: infra.AppBase{
-			Name: s.name,
+			Name: s.executor.Name(),
 			Args: []string{
 				"start",
-				"--home", sifchainHome,
+				"--home", s.executor.Home(),
 				"--rpc.laddr", "tcp://{{ .IP }}:26657",
 				"--p2p.laddr", "tcp://{{ .IP }}:26656",
 				"--grpc.address", "{{ .IP }}:9090",
 				"--rpc.pprof_laddr", "{{ .IP }}:6060",
 			},
 			Copy: []string{
-				bin,
-				sifchainHome,
+				s.executor.Bin(),
+				s.executor.Home(),
 			},
 			PreFunc: func(ctx context.Context) error {
-				keyName := "master"
-				keyData := &bytes.Buffer{}
-				accountAddrBuf := &bytes.Buffer{}
-				accountAddrBechBuf := &bytes.Buffer{}
-				err := exec.Run(ctx,
-					sifnodedOut(keyData, "keys", "add", keyName, "--output", "json", "--keyring-backend", "test"),
-					sifnodedOut(accountAddrBuf, "keys", "show", keyName, "-a", "--keyring-backend", "test"),
-					sifnodedOut(accountAddrBechBuf, "keys", "show", keyName, "-a", "--bech", "val", "--keyring-backend", "test"),
-				)
-				if err != nil {
-					return err
-				}
-
-				must.OK(ioutil.WriteFile(config.HomeDir+"/"+s.name+".json", keyData.Bytes(), 0o600))
-
-				// FIXME (wojciech): create genesis file manually
-				return exec.Run(ctx,
-					sifnoded("init", s.name, "--chain-id", s.name, "-o"),
-					sifnoded("add-genesis-account", strings.TrimSuffix(accountAddrBuf.String(), "\n"), "500000000000000000000000rowan,990000000000000000000000000stake", "--keyring-backend", "test"),
-					sifnoded("add-genesis-validators", strings.TrimSuffix(accountAddrBechBuf.String(), "\n"), "--keyring-backend", "test"),
-					sifnoded("gentx", keyName, "1000000000000000000000000stake", "--chain-id", s.name, "--keyring-backend", "test"),
-					sifnoded("collect-gentxs"),
-				)
+				return s.executor.PrepareNode(ctx, s.genesis)
 			},
 		},
 	})
@@ -113,22 +85,24 @@ func (s *Sifchain) Deploy(ctx context.Context, config infra.Config, target infra
 		return err
 	}
 	s.ip = deployment.IP
+	return s.saveClientWrapper(s.homeDir)
+}
 
+func (s *Sifchain) saveClientWrapper(home string) error {
 	client := `#!/bin/sh
 OPTS=""
 if [ "$1" == "tx" ] || [ "$1" == "q" ]; then
-	OPTS="$OPTS --chain-id ""` + s.name + `"" --node ""tcp://` + s.ip.String() + `:26657"""
+	OPTS="$OPTS --chain-id ""` + s.executor.Name() + `"" --node ""tcp://` + s.ip.String() + `:26657"""
 fi
 if [ "$1" == "tx" ] || [ "$1" == "keys" ]; then
 	OPTS="$OPTS --keyring-backend ""test"""
 fi
 
-exec ` + bin + ` --home "` + sifchainHome + `" "$@" $OPTS
+exec ` + s.executor.Bin() + ` --home "` + s.executor.Home() + `" "$@" $OPTS
 `
-	if err := os.MkdirAll(config.HomeDir+"/bin", 0o700); err != nil && !errors.Is(err, os.ErrExist) {
-		panic(err)
-	}
 
-	must.OK(ioutil.WriteFile(config.HomeDir+"/bin/"+s.name, []byte(client), 0o700))
-	return nil
+	if err := os.MkdirAll(home+"/bin", 0o700); err != nil && !errors.Is(err, os.ErrExist) {
+		return err
+	}
+	return ioutil.WriteFile(home+"/bin/"+s.executor.Name(), []byte(client), 0o700)
 }

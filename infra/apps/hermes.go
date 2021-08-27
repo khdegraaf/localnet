@@ -3,7 +3,6 @@ package apps
 import (
 	"context"
 	"errors"
-	"net"
 	"os"
 	osexec "os/exec"
 	"time"
@@ -11,20 +10,13 @@ import (
 	"github.com/ridge/must"
 	"github.com/wojciech-sif/localnet/exec"
 	"github.com/wojciech-sif/localnet/infra"
+	"github.com/wojciech-sif/localnet/infra/apps/hermes"
 )
 
-// SifchainPeer is the interface required by hermes to be able to connect to sifchain
-type SifchainPeer interface {
-	// ID returns chain id
-	ID() string
-
-	// IP returns ip used for connection
-	IP() net.IP
-}
-
 // NewHermes creates new hermes app
-func NewHermes(name string, chainA, chainB SifchainPeer) *Hermes {
+func NewHermes(config infra.Config, name string, chainA, chainB hermes.Peer) *Hermes {
 	return &Hermes{
+		config: config,
 		name:   name,
 		chainA: chainA,
 		chainB: chainB,
@@ -33,19 +25,20 @@ func NewHermes(name string, chainA, chainB SifchainPeer) *Hermes {
 
 // Hermes represents hermes relayer
 type Hermes struct {
+	config infra.Config
 	name   string
-	chainA SifchainPeer
-	chainB SifchainPeer
+	chainA hermes.Peer
+	chainB hermes.Peer
 }
 
 // Deploy deploys sifchain app to the target
-func (h *Hermes) Deploy(ctx context.Context, config infra.Config, target infra.AppTarget) error {
+func (h *Hermes) Deploy(ctx context.Context, target infra.AppTarget) error {
 	// FIXME (wojciech): implement healthchecks instead of this hack
 	time.Sleep(10 * time.Second)
 
-	bin := config.BinDir + "/hermes"
+	bin := h.config.BinDir + "/hermes"
 
-	hermesHome := config.HomeDir + "/" + h.name
+	hermesHome := h.config.HomeDir + "/" + h.name
 	configFile := hermesHome + "/config.toml"
 	hermes := func(args ...string) *osexec.Cmd {
 		return osexec.Command(bin, append([]string{"--config", configFile}, args...)...)
@@ -69,7 +62,7 @@ grpc_addr = 'http://` + h.chainA.IP().String() + `:9090'
 websocket_addr = 'ws://` + h.chainA.IP().String() + `:26657/websocket'
 rpc_timeout = '10s'
 account_prefix = 'sif'
-key_name = '` + config.EnvName + "-" + h.chainA.ID() + `'
+key_name = '` + h.config.EnvName + "-" + h.chainA.ID() + `'
 store_prefix = 'ibc'
 max_gas = 3000000
 gas_price = { price = 0.001, denom = 'stake' }
@@ -87,7 +80,7 @@ grpc_addr = 'http://` + h.chainB.IP().String() + `:9090'
 websocket_addr = 'ws://` + h.chainB.IP().String() + `:26657/websocket'
 rpc_timeout = '10s'
 account_prefix = 'sif'
-key_name = '` + config.EnvName + "-" + h.chainB.ID() + `'
+key_name = '` + h.config.EnvName + "-" + h.chainB.ID() + `'
 store_prefix = 'ibc'
 max_gas = 3000000
 gas_price = { price = 0.001, denom = 'stake' }
@@ -124,8 +117,8 @@ trust_threshold = { numerator = '1', denominator = '3' }
 			},
 			PreFunc: func(ctx context.Context) error {
 				return exec.Run(ctx,
-					hermes("keys", "add", h.chainA.ID(), "--file", config.HomeDir+"/"+h.chainA.ID()+".json"),
-					hermes("keys", "add", h.chainB.ID(), "--file", config.HomeDir+"/"+h.chainB.ID()+".json"),
+					hermes("keys", "add", h.chainA.ID(), "--file", h.config.HomeDir+"/"+h.chainA.ID()+"/master.json"),
+					hermes("keys", "add", h.chainB.ID(), "--file", h.config.HomeDir+"/"+h.chainB.ID()+"/master.json"),
 					hermes("create", "channel", h.chainA.ID(), h.chainB.ID(), "--port-a", "transfer", "--port-b", "transfer"),
 				)
 			},

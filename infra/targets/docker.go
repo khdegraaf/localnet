@@ -34,7 +34,7 @@ type Docker struct {
 
 // Deploy deploys environment to docker target
 func (d *Docker) Deploy(ctx context.Context, env infra.Env) error {
-	return env.Deploy(ctx, d.config, d)
+	return env.Deploy(ctx, d)
 }
 
 // DeployBinary builds container image out of binary file and starts it in docker

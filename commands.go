@@ -12,6 +12,7 @@ import (
 	"github.com/ridge/must"
 	"github.com/wojciech-sif/localnet/exec"
 	"github.com/wojciech-sif/localnet/infra"
+	"github.com/wojciech-sif/localnet/infra/apps"
 )
 
 // Activate starts preconfigured bash environment
@@ -55,6 +56,6 @@ func Activate(ctx context.Context, configF *ConfigFactory) error {
 }
 
 // Start starts dev environment
-func Start(ctx context.Context, target infra.Target) error {
-	return target.Deploy(ctx, DevEnv())
+func Start(ctx context.Context, target infra.Target, appF *apps.Factory) error {
+	return target.Deploy(ctx, DevEnv(appF))
 }

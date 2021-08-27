@@ -6,12 +6,12 @@ import (
 )
 
 // DevEnv is the environment for developer
-func DevEnv() infra.Env {
-	sifchainA := apps.NewSifchain("sifchain-a")
-	sifchainB := apps.NewSifchain("sifchain-b")
+func DevEnv(af *apps.Factory) infra.Env {
+	sifchainA := af.Sifchain("sifchain-a")
+	sifchainB := af.Sifchain("sifchain-b")
 	return infra.Env{
 		sifchainA,
 		sifchainB,
-		apps.NewHermes("hermes", sifchainA, sifchainB),
+		af.Hermes("hermes", sifchainA, sifchainB),
 	}
 }

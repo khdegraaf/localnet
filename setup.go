@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/wojciech-malota-wojcik/ioc"
 	"github.com/wojciech-sif/localnet/infra"
+	"github.com/wojciech-sif/localnet/infra/apps"
 	"github.com/wojciech-sif/localnet/infra/targets"
 )
 
@@ -20,6 +21,7 @@ func IoC(c *ioc.Container) {
 	c.Transient(func(configF *ConfigFactory) infra.Config {
 		return configF.Config()
 	})
+	c.Transient(apps.NewFactory)
 	c.TransientNamed("tmux", targets.NewTMux)
 	c.TransientNamed("docker", targets.NewDocker)
 	c.Transient(func(c *ioc.Container, config infra.Config) infra.Target {

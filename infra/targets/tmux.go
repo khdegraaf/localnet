@@ -42,7 +42,10 @@ func (t *TMux) Deploy(ctx context.Context, env infra.Env) error {
 			return err
 		}
 	}
-	return t.session.Attach(ctx)
+	if !t.config.TestingMode {
+		return t.session.Attach(ctx)
+	}
+	return nil
 }
 
 // DeployBinary starts binary file inside tmux session

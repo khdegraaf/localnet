@@ -18,4 +18,7 @@ type Config struct {
 
 	// TMuxNetwork is the IP network for processes executed directly in tmux
 	TMuxNetwork net.IP
+
+	// TestingMode means we are in testing mode and deployment should not block execution
+	TestingMode bool
 }

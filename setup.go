@@ -17,7 +17,11 @@ import (
 // IoC configures IoC container
 func IoC(c *ioc.Container) {
 	c.Singleton(NewCmdFactory)
-	c.Singleton(NewConfigFactory)
+	c.Singleton(func() *ConfigFactory {
+		cf := NewConfigFactory()
+		cf.TestingMode = len(os.Args) > 1 && os.Args[1] == "test"
+		return cf
+	})
 	c.Transient(func(configF *ConfigFactory) infra.Config {
 		return configF.Config()
 	})
@@ -73,6 +77,9 @@ type ConfigFactory struct {
 
 	// TMuxNetwork is the IP network for processes executed directly in tmux
 	TMuxNetwork string
+
+	// TestingMode means we are in testing mode and deployment should not block execution
+	TestingMode bool
 }
 
 // Config produces final config
@@ -91,5 +98,6 @@ func (cf *ConfigFactory) Config() infra.Config {
 		HomeDir:     homeDir,
 		BinDir:      must.String(filepath.Abs(must.String(filepath.EvalSymlinks(cf.BinDir)))),
 		TMuxNetwork: net.ParseIP(cf.TMuxNetwork),
+		TestingMode: cf.TestingMode,
 	}
 }

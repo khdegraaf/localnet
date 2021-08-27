@@ -13,6 +13,8 @@ import (
 	"github.com/wojciech-sif/localnet/exec"
 	"github.com/wojciech-sif/localnet/infra"
 	"github.com/wojciech-sif/localnet/infra/apps"
+	"github.com/wojciech-sif/localnet/infra/testing"
+	"github.com/wojciech-sif/localnet/tests"
 )
 
 // Activate starts preconfigured bash environment
@@ -58,4 +60,10 @@ func Activate(ctx context.Context, configF *ConfigFactory) error {
 // Start starts dev environment
 func Start(ctx context.Context, target infra.Target, appF *apps.Factory) error {
 	return target.Deploy(ctx, DevEnv(appF))
+}
+
+// Test runs integration tests
+func Test(ctx context.Context, target infra.Target, appF *apps.Factory) error {
+	env, tests := tests.Tests(appF)
+	return testing.Run(ctx, target, env, tests)
 }

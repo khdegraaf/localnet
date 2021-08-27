@@ -45,6 +45,7 @@ func Activate(ctx context.Context, configF *ConfigFactory) error {
 		fmt.Sprintf("LOCALNET_ENV=%s", configF.EnvName),
 		fmt.Sprintf("LOCALNET_HOME=%s", configF.HomeDir),
 		fmt.Sprintf("LOCALNET_TARGET=%s", configF.Target),
+		fmt.Sprintf("LOCALNET_BIN_DIR=%s", configF.BinDir),
 		fmt.Sprintf("LOCALNET_TMUX_NETWORK=%s", configF.TMuxNetwork),
 	)
 	bash.Stdin = tty

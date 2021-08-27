@@ -49,7 +49,7 @@ func (s *Sifchain) Deploy(ctx context.Context, config infra.Config, target infra
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	const bin = "/home/wojciech/go/bin/sifnoded"
+	bin := config.BinDir + "/sifnoded"
 
 	sifchainHome := config.HomeDir + "/" + s.name
 	sifnoded := func(args ...string) *osexec.Cmd {

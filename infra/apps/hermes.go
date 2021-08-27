@@ -43,7 +43,7 @@ func (h *Hermes) Deploy(ctx context.Context, config infra.Config, target infra.A
 	// FIXME (wojciech): implement healthchecks instead of this hack
 	time.Sleep(10 * time.Second)
 
-	const bin = "/home/wojciech/go/bin/hermes"
+	bin := config.BinDir + "/hermes"
 
 	hermesHome := config.HomeDir + "/" + h.name
 	configFile := hermesHome + "/config.toml"

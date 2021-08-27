@@ -11,7 +11,6 @@ import (
 
 	"github.com/ridge/must"
 	"github.com/ridge/parallel"
-	"github.com/spf13/pflag"
 	"github.com/wojciech-malota-wojcik/ioc"
 	"github.com/wojciech-sif/localnet/lib/logger"
 	"go.uber.org/zap"
@@ -31,20 +30,20 @@ func Tool(appName string, containerBuilder func(c *ioc.Container), appFunc inter
 	c.Call(run(context.Background(), filepath.Base(appName), appFunc, parallel.Exit))
 }
 
-func parsePflag() bool {
-	mu.Lock()
-	defer mu.Unlock()
-
-	if !pflag.Parsed() {
-		pflag.Parse()
-		return true
-	}
-	return false
-}
+// func parsePflag() bool {
+//	mu.Lock()
+//	defer mu.Unlock()
+//
+//	if !pflag.Parsed() {
+//		pflag.Parse()
+//		return true
+//	}
+//	return false
+// }
 
 func run(ctx context.Context, appName string, setupFunc interface{}, exit parallel.OnExit) func(c *ioc.Container) {
 	changeWorkingDir()
-	isRootApp := parsePflag()
+	isRootApp := true // parsePflag()
 	return func(c *ioc.Container) {
 		exitCode := 0
 		log := logger.Get(newContext())

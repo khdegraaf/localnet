@@ -3,7 +3,6 @@ package logger
 import (
 	"context"
 
-	"github.com/spf13/pflag"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -22,7 +21,7 @@ var cliCfg = config{
 }
 
 func init() {
-	pflag.BoolVarP(&cliCfg.Verbose, "verbose", "v", cliCfg.Verbose, "Enable verbose (debug level) messages")
+	// pflag.BoolVarP(&cliCfg.Verbose, "verbose", "v", cliCfg.Verbose, "Enable verbose (debug level) messages")
 }
 
 // EncoderConfig is the config of log encoder

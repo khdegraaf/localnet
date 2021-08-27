@@ -29,7 +29,7 @@ type TMux struct {
 // Deploy deploys environment to tmux target
 func (t *TMux) Deploy(ctx context.Context, env infra.Env) error {
 	t.mu.Lock()
-	t.currentIP = t.config.TMuxStartIP
+	t.currentIP = t.config.TMuxNetwork
 	t.mu.Unlock()
 
 	session := tmux.NewSession(t.config.EnvName)
@@ -72,11 +72,11 @@ func (t *TMux) ip() (net.IP, error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	ip := make([]byte, len(t.currentIP))
-	copy(ip, t.currentIP)
 	if t.currentIP[len(t.currentIP)-1] == 0xfe {
 		return nil, errors.New("no more IPs available")
 	}
 	t.currentIP[len(t.currentIP)-1]++
+	ip := make([]byte, len(t.currentIP))
+	copy(ip, t.currentIP)
 	return ip, nil
 }

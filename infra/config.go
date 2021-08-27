@@ -13,6 +13,6 @@ type Config struct {
 	// HomeDir is the path where all the files are kept
 	HomeDir string
 
-	// TMuxStartIP is the starting IP for processes executed directly in tmux
-	TMuxStartIP net.IP
+	// TMuxNetwork is the IP network for processes executed directly in tmux
+	TMuxNetwork net.IP
 }

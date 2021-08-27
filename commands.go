@@ -24,10 +24,10 @@ func Activate(ctx context.Context, configF *ConfigFactory) error {
 	exeDir := filepath.Dir(must.String(filepath.EvalSymlinks(must.String(os.Executable()))))
 	path := os.Getenv("PATH")
 	if !strings.Contains(path, homeBin) {
-		path += ":" + homeBin
+		path = homeBin + ":" + path
 	}
 	if !strings.Contains(path, exeDir) {
-		path += ":" + exeDir
+		path = exeDir + ":" + path
 	}
 
 	bash := osexec.Command("bash")

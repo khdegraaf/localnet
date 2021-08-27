@@ -21,11 +21,19 @@ func Activate(ctx context.Context, configF *ConfigFactory) error {
 
 	config := configF.Config()
 	homeBin := config.HomeDir + "/bin"
+	homeRoot := filepath.Dir(config.HomeDir)
 	exeDir := filepath.Dir(must.String(filepath.EvalSymlinks(must.String(os.Executable()))))
-	path := os.Getenv("PATH")
-	if !strings.Contains(path, homeBin) {
-		path = homeBin + ":" + path
+
+	var path string
+	for _, p := range strings.Split(os.Getenv("PATH"), ":") {
+		if !strings.HasPrefix(p, homeRoot) {
+			if path != "" {
+				path += ":"
+			}
+			path += p
+		}
 	}
+	path = homeBin + ":" + path
 	if !strings.Contains(path, exeDir) {
 		path = exeDir + ":" + path
 	}

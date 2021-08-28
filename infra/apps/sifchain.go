@@ -2,15 +2,21 @@ package apps
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
+	"net/http"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/ridge/must"
 	"github.com/wojciech-sif/localnet/infra"
 	"github.com/wojciech-sif/localnet/infra/apps/sifchain"
+	"github.com/wojciech-sif/localnet/lib/retry"
 )
 
 // NewSifchain creates new sifchain app
@@ -58,6 +64,50 @@ func (s *Sifchain) Genesis() *sifchain.Genesis {
 // Client creates new client for sifchain blockchain
 func (s *Sifchain) Client() *sifchain.Client {
 	return sifchain.NewClient(s.executor, s.ip)
+}
+
+// HealthCheck checks if sifchain is empty
+func (s *Sifchain) HealthCheck(ctx context.Context) error {
+	if s.ip == nil {
+		return retry.Retryable(fmt.Errorf("sifchain hasn't started yet"))
+	}
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	req := must.HTTPRequest(http.NewRequestWithContext(ctx, http.MethodGet, "http://"+s.ip.String()+":26657/status", nil))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return retry.Retryable(err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return retry.Retryable(err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return retry.Retryable(fmt.Errorf("health check failed, status code: %d, response: %s", resp.StatusCode, body))
+	}
+
+	data := struct {
+		Result struct {
+			SyncInfo struct {
+				LatestBlockHash string `json:"latest_block_hash"` // nolint: tagliatelle
+			} `json:"sync_info"` // nolint: tagliatelle
+		} `json:"result"`
+	}{}
+
+	if err := json.Unmarshal(body, &data); err != nil {
+		return retry.Retryable(err)
+	}
+
+	if data.Result.SyncInfo.LatestBlockHash == "" {
+		return retry.Retryable(errors.New("genesis block hasn't been mined yet"))
+	}
+
+	return nil
 }
 
 // Deploy deploys sifchain app to the target

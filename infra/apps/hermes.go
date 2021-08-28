@@ -33,8 +33,14 @@ type Hermes struct {
 
 // Deploy deploys sifchain app to the target
 func (h *Hermes) Deploy(ctx context.Context, target infra.AppTarget) error {
-	// FIXME (wojciech): implement healthchecks instead of this hack
-	time.Sleep(10 * time.Second)
+	waitCtx, waitCancel := context.WithTimeout(ctx, 10*time.Second)
+	defer waitCancel()
+	if err := infra.WaitUntilHealthy(waitCtx, h.chainA); err != nil {
+		return err
+	}
+	if err := infra.WaitUntilHealthy(waitCtx, h.chainB); err != nil {
+		return err
+	}
 
 	bin := h.config.BinDir + "/hermes"
 

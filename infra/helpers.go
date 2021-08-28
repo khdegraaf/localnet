@@ -6,8 +6,10 @@ import (
 	"io/ioutil"
 	"net"
 	"text/template"
+	"time"
 
 	"github.com/ridge/must"
+	"github.com/wojciech-sif/localnet/lib/retry"
 )
 
 // PreprocessApp runs all the operations required to prepare app to be deployed
@@ -39,4 +41,17 @@ func PreprocessApp(ctx context.Context, ip net.IP, app AppBase) error {
 		return app.PreFunc(ctx)
 	}
 	return nil
+}
+
+// HealthCheckCapable represents application exposing health check endpoint
+type HealthCheckCapable interface {
+	// HealthCheck runs single health check
+	HealthCheck(ctx context.Context) error
+}
+
+// WaitUntilHealthy waits until app is healthy or context expires
+func WaitUntilHealthy(ctx context.Context, app HealthCheckCapable) error {
+	return retry.Do(ctx, time.Second, func() error {
+		return app.HealthCheck(ctx)
+	})
 }

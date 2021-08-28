@@ -31,8 +31,8 @@ func VerifyInitialBalance(chain *apps.Sifchain) (testing.PrepareFunc, testing.Ru
 
 		// Second function runs test
 		func(ctx context.Context, t *testing.T) {
-			// FIXME (wojciech): implement healthcheck loop
-			time.Sleep(10 * time.Second)
+			// Wait until chain is healthy
+			testing.WaitUntilHealthy(ctx, t, 20*time.Second, chain)
 
 			// Create client so we can send transactions and query state
 			client := chain.Client()
@@ -65,10 +65,8 @@ func TransferRowan(chain *apps.Sifchain) (testing.PrepareFunc, testing.RunFunc) 
 
 		// Second function runs test
 		func(ctx context.Context, t *testing.T) {
-			// FIXME (wojciech): implement healthcheck loop
-			time.Sleep(10 * time.Second)
-
-			log := logger.Get(ctx)
+			// Wait until chain is healthy
+			testing.WaitUntilHealthy(ctx, t, 20*time.Second, chain)
 
 			// Create client so we can send transactions and query state
 			client := chain.Client()
@@ -77,7 +75,7 @@ func TransferRowan(chain *apps.Sifchain) (testing.PrepareFunc, testing.RunFunc) 
 			txHash, err := client.TxBankSend(ctx, sender, receiver, sifchain.Balance{Denom: "rowan", Amount: big.NewInt(10)})
 			require.NoError(t, err)
 
-			log.Info("Transfer executed", zap.String("txHash", txHash))
+			logger.Get(ctx).Info("Transfer executed", zap.String("txHash", txHash))
 
 			// Query wallets for current balance
 			balancesSender, err := client.QBankBalances(ctx, sender)

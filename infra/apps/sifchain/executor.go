@@ -101,6 +101,15 @@ func (e *Executor) QBankBalances(ctx context.Context, address string, ip net.IP)
 	return balances.Bytes(), nil
 }
 
+// TxBankSend sends tokens from one address to another
+func (e *Executor) TxBankSend(ctx context.Context, sender, address string, balance Balance, ip net.IP) ([]byte, error) {
+	tx := &bytes.Buffer{}
+	if err := exec.Run(ctx, e.sifnodedOut(tx, "tx", "bank", "send", sender, address, balance.Amount.String()+balance.Denom, "--yes", "--chain-id", e.name, "--node", fmt.Sprintf("tcp://%s:26657", ip), "--keyring-backend", "test", "--output", "json")); err != nil {
+		return nil, err
+	}
+	return tx.Bytes(), nil
+}
+
 func (e *Executor) sifnoded(args ...string) *osexec.Cmd {
 	return osexec.Command(e.binPath, append([]string{"--home", e.homeDir}, args...)...)
 }

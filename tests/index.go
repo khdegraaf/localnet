@@ -14,6 +14,7 @@ func Tests(appF *apps.Factory) (infra.Env, []*testing.T) {
 			chain,
 		},
 		[]*testing.T{
-			testing.New(transfers.Successful(chain)),
+			testing.New(transfers.VerifyInitialBalance(chain)),
+			testing.New(transfers.TransferRowan(chain)),
 		}
 }

@@ -103,3 +103,18 @@ func (c *Client) QBankBalances(ctx context.Context, wallet Wallet) (map[string]B
 	}
 	return balances, nil
 }
+
+// TxBankSend sends tokens from one wallet to another
+func (c *Client) TxBankSend(ctx context.Context, sender, receiver Wallet, balance Balance) (string, error) {
+	out, err := c.executor.TxBankSend(ctx, sender.Name, receiver.Address, balance, c.ip)
+	if err != nil {
+		return "", err
+	}
+	data := struct {
+		TxHash string `json:"txhash"`
+	}{}
+	if err := json.Unmarshal(out, &data); err != nil {
+		return "", err
+	}
+	return data.TxHash, nil
+}

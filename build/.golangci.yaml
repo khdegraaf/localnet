@@ -64,6 +64,7 @@ linters:
     - errorlint
     - gci
     - forbidigo
+    - gomoddirectives
 
 linters-settings:
   nakedret:

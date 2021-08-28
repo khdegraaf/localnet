@@ -2,7 +2,10 @@ package sifchain
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"math/big"
+	"net"
 	"sync"
 
 	"github.com/wojciech-sif/localnet/lib/rnd"
@@ -20,10 +23,10 @@ type Wallet struct {
 // Balance stores balance of denom
 type Balance struct {
 	// Amount is stored amount
-	Amount *big.Int
+	Amount *big.Int `json:"amount"`
 
 	// Denom is a token symbol
-	Denom string
+	Denom string `json:"denom"`
 }
 
 // NewGenesis returns new genesis configurator
@@ -57,4 +60,46 @@ func (g *Genesis) AddWallet(ctx context.Context, balances ...Balance) (Wallet, e
 	g.wallets[wallet] = balances
 
 	return wallet, nil
+}
+
+// NewClient creates new client for sifchain
+func NewClient(executor *Executor, ip net.IP) *Client {
+	return &Client{
+		executor: executor,
+		ip:       ip,
+	}
+}
+
+// Client is the client for sifchain blockchain
+type Client struct {
+	executor *Executor
+	ip       net.IP
+}
+
+// QBankBalances queries for bank balances owned by wallet
+func (c *Client) QBankBalances(ctx context.Context, wallet Wallet) (map[string]Balance, error) {
+	// FIXME (wojciech): support pagination
+	out, err := c.executor.QBankBalances(ctx, wallet.Address, c.ip)
+	if err != nil {
+		return nil, err
+	}
+	data := struct {
+		Balances []struct {
+			Amount string `json:"amount"`
+			Denom  string `json:"denom"`
+		} `json:"balances"`
+	}{}
+	if err := json.Unmarshal(out, &data); err != nil {
+		return nil, err
+	}
+
+	balances := map[string]Balance{}
+	for _, b := range data.Balances {
+		amount, ok := big.NewInt(0).SetString(b.Amount, 10)
+		if !ok {
+			panic(fmt.Sprintf("invalid amount %s received for denom %s on wallet %s", b.Amount, b.Denom, wallet.Address))
+		}
+		balances[b.Denom] = Balance{Amount: amount, Denom: b.Denom}
+	}
+	return balances, nil
 }

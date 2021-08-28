@@ -3,7 +3,9 @@ package sifchain
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io/ioutil"
+	"net"
 	osexec "os/exec"
 	"strings"
 
@@ -88,6 +90,15 @@ func (e *Executor) PrepareNode(ctx context.Context, genesis *Genesis) error {
 		e.sifnoded("collect-gentxs"),
 	)
 	return exec.Run(ctx, cmds...)
+}
+
+// QBankBalances queries for bank balances owned by address
+func (e *Executor) QBankBalances(ctx context.Context, address string, ip net.IP) ([]byte, error) {
+	balances := &bytes.Buffer{}
+	if err := exec.Run(ctx, e.sifnodedOut(balances, "q", "bank", "balances", address, "--chain-id", e.name, "--node", fmt.Sprintf("tcp://%s:26657", ip), "--output", "json")); err != nil {
+		return nil, err
+	}
+	return balances.Bytes(), nil
 }
 
 func (e *Executor) sifnoded(args ...string) *osexec.Cmd {

@@ -14,7 +14,6 @@ func Tests(appF *apps.Factory) (infra.Env, []*testing.T) {
 			chain,
 		},
 		[]*testing.T{
-			testing.New(transfers.Failing(chain)),
 			testing.New(transfers.Successful(chain)),
 		}
 }

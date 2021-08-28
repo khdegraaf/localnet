@@ -55,6 +55,11 @@ func (s *Sifchain) Genesis() *sifchain.Genesis {
 	return s.genesis
 }
 
+// Client creates new client for sifchain blockchain
+func (s *Sifchain) Client() *sifchain.Client {
+	return sifchain.NewClient(s.executor, s.ip)
+}
+
 // Deploy deploys sifchain app to the target
 func (s *Sifchain) Deploy(ctx context.Context, target infra.AppTarget) error {
 	s.mu.Lock()

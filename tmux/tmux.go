@@ -2,6 +2,8 @@ package tmux
 
 import (
 	"context"
+	"fmt"
+	osexec "os/exec"
 
 	"github.com/wojciech-sif/localnet/exec"
 )
@@ -28,15 +30,17 @@ const help = `
 `
 
 // NewSession returns new tmux session representation
-func NewSession(name string) *Session {
+func NewSession(name, logDir string) *Session {
 	return &Session{
-		name: name,
+		name:   name,
+		logDir: logDir,
 	}
 }
 
 // Session represents tmux session
 type Session struct {
-	name string
+	name   string
+	logDir string
 }
 
 // Init initializes new tmux session if none exists
@@ -44,12 +48,13 @@ func (s *Session) Init(ctx context.Context) (bool, error) {
 	if exec.Run(ctx, exec.TMuxNoOut("has-session", "-t", s.name)) == nil {
 		return false, nil
 	}
-	return true, exec.Run(ctx, exec.TMux("new-session", "-d", "-s", s.name, "-n", "help", "bash", "-c", "trap '' SIGINT SIGQUIT; echo '"+help+"'\nwhile :; do read -sr; done"))
+	return true, exec.Run(ctx, exec.TMux("new-session", "-d", "-s", s.name, "-n", "help", "bash", "-ce", "trap '' SIGINT SIGQUIT; echo '"+help+"'\nwhile :; do read -sr; done"))
 }
 
 // StartApp adds application to the session
 func (s *Session) StartApp(ctx context.Context, name string, args ...string) error {
-	return exec.Run(ctx, exec.TMux(append([]string{"new-window", "-d", "-n", name, "-t", s.name + ":"}, args...)...))
+	return exec.Run(ctx, exec.TMux("new-window", "-d", "-n", name, "-t", s.name+":", "bash", "-ce",
+		fmt.Sprintf("%s 2>&1 | tee -a \"%s/%s.log\"\nwhile :; do read -sr; done", osexec.Command("", args...).String(), s.logDir, name)))
 }
 
 // Attach attaches terminal to tmux session

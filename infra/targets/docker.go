@@ -3,7 +3,9 @@ package targets
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"net"
+	osexec "os/exec"
 	"strings"
 	"text/template"
 
@@ -66,6 +68,14 @@ func (d *Docker) DeployBinary(ctx context.Context, app infra.Binary) (infra.Depl
 	if err != nil {
 		return deployment, err
 	}
+
+	err = osexec.Command("bash", "-ce",
+		fmt.Sprintf("%s 2>&1 | tee -a \"%s/%s.log\"", exec.Docker("logs", "-f", name).String(),
+			d.config.LogDir, app.Name)).Start()
+	if err != nil {
+		return deployment, err
+	}
+
 	deployment.IP = net.ParseIP(strings.TrimSuffix(ipBuf.String(), "\n"))
 	return deployment, nil
 }

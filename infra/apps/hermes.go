@@ -44,7 +44,7 @@ func (h *Hermes) Deploy(ctx context.Context, target infra.AppTarget) error {
 
 	bin := h.config.BinDir + "/hermes"
 
-	hermesHome := h.config.HomeDir + "/" + h.name
+	hermesHome := h.config.AppDir + "/" + h.name
 	configFile := hermesHome + "/config.toml"
 	hermes := func(args ...string) *osexec.Cmd {
 		return osexec.Command(bin, append([]string{"--config", configFile}, args...)...)
@@ -123,8 +123,8 @@ trust_threshold = { numerator = '1', denominator = '3' }
 			},
 			PreFunc: func(ctx context.Context) error {
 				return exec.Run(ctx,
-					hermes("keys", "add", h.chainA.ID(), "--file", h.config.HomeDir+"/"+h.chainA.ID()+"/master.json"),
-					hermes("keys", "add", h.chainB.ID(), "--file", h.config.HomeDir+"/"+h.chainB.ID()+"/master.json"),
+					hermes("keys", "add", h.chainA.ID(), "--file", h.config.AppDir+"/"+h.chainA.ID()+"/data/master.json"),
+					hermes("keys", "add", h.chainB.ID(), "--file", h.config.AppDir+"/"+h.chainB.ID()+"/data/master.json"),
 					hermes("create", "channel", h.chainA.ID(), h.chainB.ID(), "--port-a", "transfer", "--port-b", "transfer"),
 				)
 			},

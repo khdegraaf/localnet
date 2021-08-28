@@ -32,7 +32,7 @@ func (t *TMux) Deploy(ctx context.Context, env infra.Set) error {
 	t.currentIP = t.config.TMuxNetwork
 	t.mu.Unlock()
 
-	t.session = tmux.NewSession(t.config.EnvName)
+	t.session = tmux.NewSession(t.config.EnvName, t.config.LogDir)
 	newSession, err := t.session.Init(ctx)
 	if err != nil {
 		return err

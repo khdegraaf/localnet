@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
-	"os"
 	"sync"
 	"time"
 
@@ -20,24 +19,19 @@ import (
 )
 
 // NewSifchain creates new sifchain app
-func NewSifchain(homeDir string, executor *sifchain.Executor) *Sifchain {
-	if err := os.RemoveAll(executor.Home()); err != nil && !errors.Is(err, os.ErrNotExist) {
-		panic(err)
-	}
-	must.OK(os.MkdirAll(executor.Home(), 0o700))
-
+func NewSifchain(wrapperDir string, executor *sifchain.Executor) *Sifchain {
 	return &Sifchain{
-		homeDir:  homeDir,
-		executor: executor,
-		genesis:  sifchain.NewGenesis(executor),
+		wrapperDir: wrapperDir,
+		executor:   executor,
+		genesis:    sifchain.NewGenesis(executor),
 	}
 }
 
 // Sifchain represents sifchain
 type Sifchain struct {
-	homeDir  string
-	executor *sifchain.Executor
-	genesis  *sifchain.Genesis
+	wrapperDir string
+	executor   *sifchain.Executor
+	genesis    *sifchain.Genesis
 
 	mu sync.RWMutex
 	ip net.IP
@@ -140,10 +134,10 @@ func (s *Sifchain) Deploy(ctx context.Context, target infra.AppTarget) error {
 		return err
 	}
 	s.ip = deployment.IP
-	return s.saveClientWrapper(s.homeDir)
+	return s.saveClientWrapper(s.wrapperDir)
 }
 
-func (s *Sifchain) saveClientWrapper(home string) error {
+func (s *Sifchain) saveClientWrapper(wrapperDir string) error {
 	client := `#!/bin/sh
 OPTS=""
 if [ "$1" == "tx" ] || [ "$1" == "q" ]; then
@@ -155,9 +149,5 @@ fi
 
 exec ` + s.executor.Bin() + ` --home "` + s.executor.Home() + `" "$@" $OPTS
 `
-
-	if err := os.MkdirAll(home+"/bin", 0o700); err != nil && !errors.Is(err, os.ErrExist) {
-		return err
-	}
-	return ioutil.WriteFile(home+"/bin/"+s.executor.Name(), []byte(client), 0o700)
+	return ioutil.WriteFile(wrapperDir+"/"+s.executor.Name(), []byte(client), 0o700)
 }

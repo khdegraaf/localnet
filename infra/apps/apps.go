@@ -20,7 +20,7 @@ type Factory struct {
 
 // Sifchain creates new sifchain
 func (f *Factory) Sifchain(name string) *Sifchain {
-	return NewSifchain(f.config.HomeDir, sifchain.NewExecutor(name, f.config.BinDir+"/sifnoded", f.config.HomeDir+"/"+name,
+	return NewSifchain(f.config.WrapperDir, sifchain.NewExecutor(name, f.config.BinDir+"/sifnoded", f.config.AppDir+"/"+name,
 		"master"))
 }
 

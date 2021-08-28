@@ -16,6 +16,15 @@ type Config struct {
 	// HomeDir is the path where all the files are kept
 	HomeDir string
 
+	// AppDir is the path where app data are stored
+	AppDir string
+
+	// LogDir is the path where logs are stored
+	LogDir string
+
+	// WrapperDir is the path where wrappers are stored
+	WrapperDir string
+
 	// BinDir is the path where all binaries are present
 	BinDir string
 

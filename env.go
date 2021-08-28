@@ -5,13 +5,20 @@ import (
 	"github.com/wojciech-sif/localnet/infra/apps"
 )
 
-// DevEnv is the environment for developer
-func DevEnv(af *apps.Factory) infra.Env {
+// DevSet is the environment for developer
+func DevSet(af *apps.Factory) infra.Set {
 	sifchainA := af.Sifchain("sifchain-a")
 	sifchainB := af.Sifchain("sifchain-b")
-	return infra.Env{
+	return infra.Set{
 		sifchainA,
 		sifchainB,
 		af.Hermes("hermes", sifchainA, sifchainB),
+	}
+}
+
+// SingleChainSet is the environment with one sifchain
+func SingleChainSet(af *apps.Factory) infra.Set {
+	return infra.Set{
+		af.Sifchain("sifchain"),
 	}
 }

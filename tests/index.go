@@ -8,9 +8,9 @@ import (
 )
 
 // Tests returns testing environment and tests
-func Tests(appF *apps.Factory) (infra.Env, []*testing.T) {
+func Tests(appF *apps.Factory) (infra.Set, []*testing.T) {
 	chain := appF.Sifchain("sifchain")
-	return infra.Env{
+	return infra.Set{
 			chain,
 		},
 		[]*testing.T{

@@ -21,7 +21,7 @@ func (err errPanic) Error() string {
 }
 
 // Run deploys testing environment and runs tests there
-func Run(ctx context.Context, target infra.Target, env infra.Env, tests []*T) error {
+func Run(ctx context.Context, target infra.Target, env infra.Set, tests []*T) error {
 	for _, test := range tests {
 		if err := test.prepare(ctx); err != nil {
 			return err

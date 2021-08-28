@@ -7,6 +7,9 @@ type Config struct {
 	// EnvName is the name of created environment
 	EnvName string
 
+	// SetName is the name of set
+	SetName string
+
 	// Target is the deployment target
 	Target string
 

@@ -33,7 +33,7 @@ type Docker struct {
 }
 
 // Deploy deploys environment to docker target
-func (d *Docker) Deploy(ctx context.Context, env infra.Env) error {
+func (d *Docker) Deploy(ctx context.Context, env infra.Set) error {
 	return env.Deploy(ctx, d)
 }
 

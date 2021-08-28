@@ -27,7 +27,7 @@ type TMux struct {
 }
 
 // Deploy deploys environment to tmux target
-func (t *TMux) Deploy(ctx context.Context, env infra.Env) error {
+func (t *TMux) Deploy(ctx context.Context, env infra.Set) error {
 	t.mu.Lock()
 	t.currentIP = t.config.TMuxNetwork
 	t.mu.Unlock()

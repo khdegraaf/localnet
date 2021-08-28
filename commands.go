@@ -46,6 +46,7 @@ func Activate(ctx context.Context, configF *ConfigFactory) error {
 		fmt.Sprintf("PS1=%s", "("+configF.EnvName+") "+regexp.MustCompile(`^\(.*?\) *`).ReplaceAllString(os.Getenv("PS1"), "")),
 		fmt.Sprintf("PATH=%s", path),
 		fmt.Sprintf("LOCALNET_ENV=%s", configF.EnvName),
+		fmt.Sprintf("LOCALNET_SET=%s", configF.SetName),
 		fmt.Sprintf("LOCALNET_HOME=%s", configF.HomeDir),
 		fmt.Sprintf("LOCALNET_TARGET=%s", configF.Target),
 		fmt.Sprintf("LOCALNET_BIN_DIR=%s", configF.BinDir),
@@ -58,8 +59,8 @@ func Activate(ctx context.Context, configF *ConfigFactory) error {
 }
 
 // Start starts dev environment
-func Start(ctx context.Context, target infra.Target, appF *apps.Factory) error {
-	return target.Deploy(ctx, DevEnv(appF))
+func Start(ctx context.Context, target infra.Target, set infra.Set) error {
+	return target.Deploy(ctx, set)
 }
 
 // Test runs integration tests

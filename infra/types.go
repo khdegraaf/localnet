@@ -10,12 +10,12 @@ type App interface {
 	Deploy(ctx context.Context, target AppTarget) error
 }
 
-// Env is the environment to deploy
-type Env []App
+// Set is the environment to deploy
+type Set []App
 
 // Deploy deploys app in environment to the target
-func (e Env) Deploy(ctx context.Context, t AppTarget) error {
-	for _, app := range e {
+func (s Set) Deploy(ctx context.Context, t AppTarget) error {
+	for _, app := range s {
 		if err := app.Deploy(ctx, t); err != nil {
 			return err
 		}
@@ -32,7 +32,7 @@ type Deployment struct {
 // Target represents target of deployment from the perspective of localnet
 type Target interface {
 	// Deploy deploys environment to the target
-	Deploy(ctx context.Context, env Env) error
+	Deploy(ctx context.Context, env Set) error
 }
 
 // AppTarget represents target of deployment from the perspective of application

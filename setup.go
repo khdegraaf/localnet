@@ -26,6 +26,13 @@ func IoC(c *ioc.Container) {
 		return configF.Config()
 	})
 	c.Transient(apps.NewFactory)
+	c.TransientNamed("dev", DevSet)
+	c.TransientNamed("single", SingleChainSet)
+	c.Transient(func(c *ioc.Container, config infra.Config) infra.Set {
+		var set infra.Set
+		c.ResolveNamed(config.SetName, &set)
+		return set
+	})
 	c.TransientNamed("tmux", targets.NewTMux)
 	c.TransientNamed("docker", targets.NewDocker)
 	c.Transient(func(c *ioc.Container, config infra.Config) infra.Target {
@@ -66,6 +73,9 @@ type ConfigFactory struct {
 	// EnvName is the name of created environment
 	EnvName string
 
+	// SetName is the name of set
+	SetName string
+
 	// Target is the deployment target
 	Target string
 
@@ -94,6 +104,7 @@ func (cf *ConfigFactory) Config() infra.Config {
 
 	return infra.Config{
 		EnvName:     cf.EnvName,
+		SetName:     cf.SetName,
 		Target:      cf.Target,
 		HomeDir:     homeDir,
 		BinDir:      must.String(filepath.Abs(must.String(filepath.EvalSymlinks(cf.BinDir)))),

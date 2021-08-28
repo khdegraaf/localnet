@@ -20,12 +20,15 @@ func main() {
 		rootCmd.PersistentFlags().StringVar(&configF.Target, "target", defaultString("LOCALNET_TARGET", "tmux"), "Target of the deployment (tmux | docker)")
 		rootCmd.PersistentFlags().StringVar(&configF.BinDir, "bin-dir", defaultString("LOCALNET_BIN_DIR", must.String(os.UserHomeDir())+"/go/bin"), "Path to directory where executables exist")
 		rootCmd.PersistentFlags().StringVar(&configF.TMuxNetwork, "tmux-network", defaultString("LOCALNET_TMUX_NETWORK", "127.1.0.0"), "Network where IPs for applications are taken from")
+		rootCmd.Flags().StringVar(&configF.SetName, "set", defaultString("LOCALNET_SET", "dev"), "Application set to deploy (dev | single)")
 
-		rootCmd.AddCommand(&cobra.Command{
+		startCmd := &cobra.Command{
 			Use:   "start",
 			Short: "Starts dev environment",
 			RunE:  cmdF.Cmd(localnet.Start),
-		})
+		}
+		startCmd.Flags().StringVar(&configF.SetName, "set", defaultString("LOCALNET_SET", "dev"), "Application set to deploy (dev | single)")
+		rootCmd.AddCommand(startCmd)
 
 		rootCmd.AddCommand(&cobra.Command{
 			Use:   "test",

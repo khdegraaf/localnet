@@ -2,7 +2,6 @@ package localnet
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	osexec "os/exec"
@@ -24,10 +23,6 @@ func Activate(ctx context.Context, configF *ConfigFactory) error {
 	defer tty.Close()
 
 	config := configF.Config()
-
-	if err := os.MkdirAll(config.LogDir, 0o700); err != nil && !errors.Is(err, os.ErrExist) {
-		return err
-	}
 
 	homeRoot := filepath.Dir(config.HomeDir)
 	exeDir := filepath.Dir(must.String(filepath.EvalSymlinks(must.String(os.Executable()))))
@@ -56,6 +51,7 @@ func Activate(ctx context.Context, configF *ConfigFactory) error {
 		fmt.Sprintf("LOCALNET_TARGET=%s", configF.Target),
 		fmt.Sprintf("LOCALNET_BIN_DIR=%s", configF.BinDir),
 		fmt.Sprintf("LOCALNET_TMUX_NETWORK=%s", configF.TMuxNetwork),
+		fmt.Sprintf("LOCALNET_VERBOSE=%t", configF.VerboseLogging),
 	)
 	bash.Dir = config.LogDir
 	bash.Stdin = tty
@@ -66,31 +62,11 @@ func Activate(ctx context.Context, configF *ConfigFactory) error {
 
 // Start starts dev environment
 func Start(ctx context.Context, config infra.Config, target infra.Target, set infra.Set) error {
-	if err := os.MkdirAll(config.AppDir, 0o700); err != nil && !errors.Is(err, os.ErrExist) {
-		return err
-	}
-	if err := os.MkdirAll(config.WrapperDir, 0o700); err != nil && !errors.Is(err, os.ErrExist) {
-		return err
-	}
-	if err := os.MkdirAll(config.LogDir, 0o700); err != nil && !errors.Is(err, os.ErrExist) {
-		return err
-	}
-
 	return target.Deploy(ctx, set)
 }
 
 // Test runs integration tests
 func Test(ctx context.Context, config infra.Config, target infra.Target, appF *apps.Factory) error {
-	if err := os.MkdirAll(config.AppDir, 0o700); err != nil && !errors.Is(err, os.ErrExist) {
-		return err
-	}
-	if err := os.MkdirAll(config.WrapperDir, 0o700); err != nil && !errors.Is(err, os.ErrExist) {
-		return err
-	}
-	if err := os.MkdirAll(config.LogDir, 0o700); err != nil && !errors.Is(err, os.ErrExist) {
-		return err
-	}
-
 	env, tests := tests.Tests(appF)
 	return testing.Run(ctx, target, env, tests)
 }

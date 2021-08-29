@@ -23,6 +23,7 @@ func main() {
 		rootCmd.PersistentFlags().StringVar(&configF.Target, "target", defaultString("LOCALNET_TARGET", "tmux"), "Target of the deployment: "+strings.Join(c.Names((*infra.Target)(nil)), " | "))
 		rootCmd.PersistentFlags().StringVar(&configF.BinDir, "bin-dir", defaultString("LOCALNET_BIN_DIR", must.String(os.UserHomeDir())+"/go/bin"), "Path to directory where executables exist")
 		rootCmd.PersistentFlags().StringVar(&configF.TMuxNetwork, "tmux-network", defaultString("LOCALNET_TMUX_NETWORK", "127.1.0.0"), "Network where IPs for applications are taken from")
+		rootCmd.PersistentFlags().BoolVarP(&configF.VerboseLogging, "verbose", "v", defaultBool("LOCALNET_VERBOSE", false), "Turns on verbose logging")
 		rootCmd.Flags().StringVar(&configF.SetName, "set", defaultString("LOCALNET_SET", "dev"), "Application set to deploy: "+strings.Join(c.Names((*infra.Set)(nil)), " | "))
 
 		startCmd := &cobra.Command{
@@ -49,4 +50,15 @@ func defaultString(env, def string) string {
 		val = def
 	}
 	return val
+}
+
+func defaultBool(env string, def bool) bool {
+	switch os.Getenv(env) {
+	case "1", "true", "True", "TRUE":
+		return true
+	case "0", "false", "False", "FALSE":
+		return false
+	default:
+		return def
+	}
 }

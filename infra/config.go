@@ -33,4 +33,7 @@ type Config struct {
 
 	// TestingMode means we are in testing mode and deployment should not block execution
 	TestingMode bool
+
+	// VerboseLogging turns on verbose logging
+	VerboseLogging bool
 }

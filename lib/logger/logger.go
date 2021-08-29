@@ -2,6 +2,7 @@ package logger
 
 import (
 	"context"
+	"sync"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -11,14 +12,8 @@ type logFiedType int
 
 const logField logFiedType = iota
 
-type config struct {
-	// Verbose enables messages at Debug level
-	Verbose bool
-}
-
-var cliCfg = config{
-	Verbose: false,
-}
+var mu sync.Mutex
+var verbose = true
 
 func init() {
 	// pflag.BoolVarP(&cliCfg.Verbose, "verbose", "v", cliCfg.Verbose, "Enable verbose (debug level) messages")
@@ -43,15 +38,12 @@ var EncoderConfig = zapcore.EncoderConfig{
 // New creates new logger
 func New() *zap.Logger {
 	cfg := zap.Config{
-		Level:            zap.NewAtomicLevelAt(zap.InfoLevel),
+		Level:            zap.NewAtomicLevelAt(zap.DebugLevel),
 		Development:      true,
 		Encoding:         "console",
 		EncoderConfig:    EncoderConfig,
 		OutputPaths:      []string{"stderr"},
 		ErrorOutputPaths: []string{"stderr"},
-	}
-	if cliCfg.Verbose {
-		cfg.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
 	}
 
 	log, err := cfg.Build()
@@ -68,10 +60,25 @@ func With(ctx context.Context, fields ...zap.Field) context.Context {
 
 // Get gets logger from context
 func Get(ctx context.Context) *zap.Logger {
-	return ctx.Value(logField).(*zap.Logger)
+	mu.Lock()
+	defer mu.Unlock()
+
+	var log = ctx.Value(logField).(*zap.Logger)
+	if !verbose {
+		log = log.WithOptions(zap.IncreaseLevel(zapcore.InfoLevel))
+	}
+	return log
 }
 
 // WithLogger adds existing logger to context
 func WithLogger(ctx context.Context, logger *zap.Logger) context.Context {
 	return context.WithValue(ctx, logField, logger)
+}
+
+// VerboseOff turns off verbose logging
+func VerboseOff() {
+	mu.Lock()
+	defer mu.Unlock()
+
+	verbose = false
 }

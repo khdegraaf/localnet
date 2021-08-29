@@ -30,20 +30,8 @@ func Tool(appName string, containerBuilder func(c *ioc.Container), appFunc inter
 	c.Call(run(context.Background(), filepath.Base(appName), appFunc, parallel.Exit))
 }
 
-// func parsePflag() bool {
-//	mu.Lock()
-//	defer mu.Unlock()
-//
-//	if !pflag.Parsed() {
-//		pflag.Parse()
-//		return true
-//	}
-//	return false
-// }
-
 func run(ctx context.Context, appName string, setupFunc interface{}, exit parallel.OnExit) func(c *ioc.Container) {
 	changeWorkingDir()
-	isRootApp := true // parsePflag()
 	return func(c *ioc.Container) {
 		exitCode := 0
 		log := logger.Get(newContext())
@@ -52,7 +40,7 @@ func run(ctx context.Context, appName string, setupFunc interface{}, exit parall
 		}
 		ctx := logger.WithLogger(ctx, log)
 		defer func() {
-			if isRootApp && exitCode != 0 {
+			if exitCode != 0 {
 				os.Exit(exitCode)
 			}
 		}()

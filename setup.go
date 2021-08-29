@@ -12,6 +12,7 @@ import (
 	"github.com/wojciech-sif/localnet/infra"
 	"github.com/wojciech-sif/localnet/infra/apps"
 	"github.com/wojciech-sif/localnet/infra/targets"
+	"github.com/wojciech-sif/localnet/lib/logger"
 )
 
 // IoC configures IoC container
@@ -90,6 +91,9 @@ type ConfigFactory struct {
 
 	// TestingMode means we are in testing mode and deployment should not block execution
 	TestingMode bool
+
+	// VerboseLogging turns on verbose logging
+	VerboseLogging bool
 }
 
 // Config produces final config
@@ -102,16 +106,37 @@ func (cf *ConfigFactory) Config() infra.Config {
 		panic(err)
 	}
 
-	return infra.Config{
-		EnvName:     cf.EnvName,
-		SetName:     cf.SetName,
-		Target:      cf.Target,
-		HomeDir:     homeDir,
-		AppDir:      homeDir + "/app",
-		LogDir:      homeDir + "/logs",
-		WrapperDir:  homeDir + "/bin",
-		BinDir:      must.String(filepath.Abs(must.String(filepath.EvalSymlinks(cf.BinDir)))),
-		TMuxNetwork: net.ParseIP(cf.TMuxNetwork),
-		TestingMode: cf.TestingMode,
+	config := infra.Config{
+		EnvName:        cf.EnvName,
+		SetName:        cf.SetName,
+		Target:         cf.Target,
+		HomeDir:        homeDir,
+		AppDir:         homeDir + "/app",
+		LogDir:         homeDir + "/logs",
+		WrapperDir:     homeDir + "/bin",
+		BinDir:         must.String(filepath.Abs(must.String(filepath.EvalSymlinks(cf.BinDir)))),
+		TMuxNetwork:    net.ParseIP(cf.TMuxNetwork),
+		TestingMode:    cf.TestingMode,
+		VerboseLogging: cf.VerboseLogging,
+	}
+
+	createDirs(config)
+
+	if !config.VerboseLogging {
+		logger.VerboseOff()
+	}
+
+	return config
+}
+
+func createDirs(config infra.Config) {
+	if err := os.MkdirAll(config.AppDir, 0o700); err != nil && !errors.Is(err, os.ErrExist) {
+		panic(err)
+	}
+	if err := os.MkdirAll(config.WrapperDir, 0o700); err != nil && !errors.Is(err, os.ErrExist) {
+		panic(err)
+	}
+	if err := os.MkdirAll(config.LogDir, 0o700); err != nil && !errors.Is(err, os.ErrExist) {
+		panic(err)
 	}
 }

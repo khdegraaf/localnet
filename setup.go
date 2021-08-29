@@ -23,6 +23,7 @@ func IoC(c *ioc.Container) {
 		cf.TestingMode = len(os.Args) > 1 && os.Args[1] == "test"
 		return cf
 	})
+	c.Singleton(infra.NewSpec)
 	c.Transient(func(configF *ConfigFactory) infra.Config {
 		return configF.Config()
 	})

@@ -2,7 +2,9 @@ package infra
 
 import (
 	"context"
+	"fmt"
 	"net"
+	"sync"
 )
 
 // App is the interface exposed by application
@@ -94,4 +96,47 @@ type Container struct {
 
 	// Tag is the tag of the image
 	Tag string
+}
+
+// NewSpec returns new spec
+func NewSpec() *Spec {
+	return &Spec{
+		Apps: map[string]*AppDescription{},
+	}
+}
+
+// Spec describes running environment
+type Spec struct {
+	mu   sync.Mutex
+	Apps map[string]*AppDescription `json:"apps"`
+}
+
+// DescribeApp adds description of running app
+func (s *Spec) DescribeApp(appType string, name string) *AppDescription {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	appDesc := &AppDescription{
+		Type:      appType,
+		Endpoints: map[string]string{},
+	}
+	s.Apps[name] = appDesc
+	return appDesc
+}
+
+// AppDescription describes app running in environment
+type AppDescription struct {
+	// Type is the type of app
+	Type string `json:"type"`
+
+	// Endpoints describe endpoints exposed by application
+	Endpoints map[string]string `json:"endpoints"`
+}
+
+// DescribeEndpoint adds endpoint to app description
+func (a *AppDescription) DescribeEndpoint(name, endpoint string) {
+	if _, exists := a.Endpoints[name]; exists {
+		panic(fmt.Sprintf("endpoint %s already exists", name))
+	}
+	a.Endpoints[name] = endpoint
 }

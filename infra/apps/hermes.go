@@ -3,6 +3,7 @@ package apps
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	osexec "os/exec"
 	"time"
@@ -14,9 +15,10 @@ import (
 )
 
 // NewHermes creates new hermes app
-func NewHermes(config infra.Config, name string, chainA, chainB hermes.Peer) *Hermes {
+func NewHermes(config infra.Config, name string, spec *infra.Spec, chainA, chainB hermes.Peer) *Hermes {
 	return &Hermes{
 		config: config,
+		spec:   spec,
 		name:   name,
 		chainA: chainA,
 		chainB: chainB,
@@ -26,9 +28,15 @@ func NewHermes(config infra.Config, name string, chainA, chainB hermes.Peer) *He
 // Hermes represents hermes relayer
 type Hermes struct {
 	config infra.Config
+	spec   *infra.Spec
 	name   string
 	chainA hermes.Peer
 	chainB hermes.Peer
+}
+
+// Name returns name of app
+func (h *Hermes) Name() string {
+	return h.name
 }
 
 // Deploy deploys sifchain app to the target
@@ -102,7 +110,7 @@ trust_threshold = { numerator = '1', denominator = '3' }
 	}
 	must.OK(os.MkdirAll(hermesHome, 0o700))
 
-	_, err := target.DeployBinary(ctx, infra.Binary{
+	deployment, err := target.DeployBinary(ctx, infra.Binary{
 		Path: bin,
 		AppBase: infra.AppBase{
 			Name: h.name,
@@ -130,5 +138,12 @@ trust_threshold = { numerator = '1', denominator = '3' }
 			},
 		},
 	})
-	return err
+	if err != nil {
+		return err
+	}
+
+	desc := h.spec.DescribeApp("hermes", h.name)
+	desc.DescribeEndpoint("telemetry", fmt.Sprintf("%s:3001", deployment.IP))
+
+	return nil
 }

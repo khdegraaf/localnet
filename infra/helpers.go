@@ -11,7 +11,9 @@ import (
 	"time"
 
 	"github.com/ridge/must"
+	"github.com/wojciech-sif/localnet/lib/logger"
 	"github.com/wojciech-sif/localnet/lib/retry"
+	"go.uber.org/zap"
 )
 
 // PreprocessApp runs all the operations required to prepare app to be deployed
@@ -47,12 +49,16 @@ func PreprocessApp(ctx context.Context, ip net.IP, app AppBase) error {
 
 // HealthCheckCapable represents application exposing health check endpoint
 type HealthCheckCapable interface {
+	// Name returns name of app
+	Name() string
+
 	// HealthCheck runs single health check
 	HealthCheck(ctx context.Context) error
 }
 
 // WaitUntilHealthy waits until app is healthy or context expires
 func WaitUntilHealthy(ctx context.Context, app HealthCheckCapable) error {
+	ctx = logger.With(ctx, zap.String("app", app.Name()))
 	return retry.Do(ctx, time.Second, func() error {
 		return app.HealthCheck(ctx)
 	})

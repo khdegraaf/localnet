@@ -70,7 +70,7 @@ func (d *Docker) DeployBinary(ctx context.Context, app infra.Binary) (infra.Depl
 	}
 
 	err = osexec.Command("bash", "-ce",
-		fmt.Sprintf("%s 2>&1 | tee -a \"%s/%s.log\"", exec.Docker("logs", "-f", name).String(),
+		fmt.Sprintf("%s > \"%s/%s.log\" 2>&1", exec.Docker("logs", "-f", name).String(),
 			d.config.LogDir, app.Name)).Start()
 	if err != nil {
 		return deployment, err

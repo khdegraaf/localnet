@@ -19,11 +19,12 @@ import (
 )
 
 // NewSifchain creates new sifchain app
-func NewSifchain(wrapperDir string, executor *sifchain.Executor) *Sifchain {
+func NewSifchain(wrapperDir string, executor *sifchain.Executor, spec *infra.Spec) *Sifchain {
 	return &Sifchain{
 		wrapperDir: wrapperDir,
 		executor:   executor,
 		genesis:    sifchain.NewGenesis(executor),
+		spec:       spec,
 	}
 }
 
@@ -32,6 +33,7 @@ type Sifchain struct {
 	wrapperDir string
 	executor   *sifchain.Executor
 	genesis    *sifchain.Genesis
+	spec       *infra.Spec
 
 	mu sync.RWMutex
 	ip net.IP
@@ -39,6 +41,11 @@ type Sifchain struct {
 
 // ID returns chain ID
 func (s *Sifchain) ID() string {
+	return s.executor.Name()
+}
+
+// Name returns name of app
+func (s *Sifchain) Name() string {
 	return s.executor.Name()
 }
 
@@ -134,6 +141,13 @@ func (s *Sifchain) Deploy(ctx context.Context, target infra.AppTarget) error {
 		return err
 	}
 	s.ip = deployment.IP
+
+	desc := s.spec.DescribeApp("sifchain", s.executor.Name())
+	desc.DescribeEndpoint("rpc", fmt.Sprintf("%s:26657", s.ip))
+	desc.DescribeEndpoint("p2p", fmt.Sprintf("%s:26656", s.ip))
+	desc.DescribeEndpoint("grpc", fmt.Sprintf("%s:9090", s.ip))
+	desc.DescribeEndpoint("pprof", fmt.Sprintf("%s:6060", s.ip))
+
 	return s.saveClientWrapper(s.wrapperDir)
 }
 

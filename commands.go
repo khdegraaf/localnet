@@ -2,7 +2,9 @@ package localnet
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	osexec "os/exec"
 	"path/filepath"
@@ -61,12 +63,32 @@ func Activate(ctx context.Context, configF *ConfigFactory) error {
 }
 
 // Start starts dev environment
-func Start(ctx context.Context, config infra.Config, target infra.Target, set infra.Set) error {
-	return target.Deploy(ctx, set)
+func Start(ctx context.Context, config infra.Config, target infra.Target, set infra.Set, spec *infra.Spec) error {
+	if err := target.Deploy(ctx, set); err != nil {
+		return err
+	}
+	return saveSpec(config.HomeDir, spec)
 }
 
 // Test runs integration tests
-func Test(ctx context.Context, config infra.Config, target infra.Target, appF *apps.Factory) error {
+func Test(ctx context.Context, config infra.Config, target infra.Target, appF *apps.Factory, spec *infra.Spec) error {
 	env, tests := tests.Tests(appF)
-	return testing.Run(ctx, target, env, tests)
+	if err := testing.Run(ctx, target, env, tests); err != nil {
+		return err
+	}
+	return saveSpec(config.HomeDir, spec)
+}
+
+// Spec print specification of running environment
+func Spec(config infra.Config) error {
+	spec, err := ioutil.ReadFile(config.HomeDir + "/spec.json")
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(spec))
+	return nil
+}
+
+func saveSpec(homeDir string, spec *infra.Spec) error {
+	return ioutil.WriteFile(homeDir+"/spec.json", must.Bytes(json.MarshalIndent(spec, "", "  ")), 0o600)
 }

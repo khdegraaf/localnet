@@ -26,12 +26,10 @@ func Activate(ctx context.Context, configF *ConfigFactory) error {
 
 	config := configF.Config()
 
-	homeRoot := filepath.Dir(config.HomeDir)
-	exeDir := filepath.Dir(must.String(filepath.EvalSymlinks(must.String(os.Executable()))))
-
+	exe := must.String(filepath.EvalSymlinks(must.String(os.Executable())))
 	var path string
 	for _, p := range strings.Split(os.Getenv("PATH"), ":") {
-		if !strings.HasPrefix(p, homeRoot) {
+		if !strings.HasPrefix(p, configF.HomeDir) {
 			if path != "" {
 				path += ":"
 			}
@@ -39,9 +37,11 @@ func Activate(ctx context.Context, configF *ConfigFactory) error {
 		}
 	}
 	path = config.WrapperDir + ":" + path
-	if !strings.Contains(path, exeDir) {
-		path = exeDir + ":" + path
-	}
+
+	must.OK(ioutil.WriteFile(config.WrapperDir+"/l", []byte(fmt.Sprintf("#!/bin/bash\nexec %s \"$@\"", exe)), 0o700))
+	must.OK(ioutil.WriteFile(config.WrapperDir+"/start", []byte(fmt.Sprintf("#!/bin/bash\nexec %s start \"$@\"", exe)), 0o700))
+	must.OK(ioutil.WriteFile(config.WrapperDir+"/spec", []byte(fmt.Sprintf("#!/bin/bash\nexec %s spec \"$@\"", exe)), 0o700))
+	must.OK(ioutil.WriteFile(config.WrapperDir+"/logs", []byte(fmt.Sprintf("#!/bin/bash\nexec tail -f -n +0 \"%s/$1.log\"", config.LogDir)), 0o700))
 
 	bash := osexec.Command("bash")
 	bash.Env = append(os.Environ(),
@@ -55,7 +55,6 @@ func Activate(ctx context.Context, configF *ConfigFactory) error {
 		fmt.Sprintf("LOCALNET_NETWORK=%s", configF.Network),
 		fmt.Sprintf("LOCALNET_VERBOSE=%t", configF.VerboseLogging),
 	)
-	bash.Dir = config.LogDir
 	bash.Stdin = tty
 	bash.Stdout = tty
 	bash.Stderr = tty

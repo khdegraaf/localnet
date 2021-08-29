@@ -9,7 +9,6 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/ridge/must"
 	"github.com/ridge/parallel"
 	"github.com/wojciech-malota-wojcik/ioc"
 	"github.com/wojciech-sif/localnet/lib/logger"
@@ -31,7 +30,6 @@ func Tool(appName string, containerBuilder func(c *ioc.Container), appFunc inter
 }
 
 func run(ctx context.Context, appName string, setupFunc interface{}, exit parallel.OnExit) func(c *ioc.Container) {
-	changeWorkingDir()
 	return func(c *ioc.Container) {
 		exitCode := 0
 		log := logger.Get(newContext())
@@ -78,8 +76,4 @@ func run(ctx context.Context, appName string, setupFunc interface{}, exit parall
 			exitCode = 1
 		}
 	}
-}
-
-func changeWorkingDir() {
-	must.OK(os.Chdir(filepath.Dir(filepath.Dir(must.String(filepath.EvalSymlinks(must.String(os.Executable())))))))
 }

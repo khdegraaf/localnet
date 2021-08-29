@@ -34,6 +34,7 @@ func IoC(c *ioc.Container) {
 		c.ResolveNamed(config.SetName, &set)
 		return set
 	})
+	c.TransientNamed("direct", targets.NewDirect)
 	c.TransientNamed("tmux", targets.NewTMux)
 	c.TransientNamed("docker", targets.NewDocker)
 	c.Transient(func(c *ioc.Container, config infra.Config) infra.Target {
@@ -86,8 +87,8 @@ type ConfigFactory struct {
 	// BinDir is the path where all binaries are present
 	BinDir string
 
-	// TMuxNetwork is the IP network for processes executed directly in tmux
-	TMuxNetwork string
+	// Network is the IP network for processes executed in tmux or direct targets
+	Network string
 
 	// TestingMode means we are in testing mode and deployment should not block execution
 	TestingMode bool
@@ -115,7 +116,7 @@ func (cf *ConfigFactory) Config() infra.Config {
 		LogDir:         homeDir + "/logs",
 		WrapperDir:     homeDir + "/bin",
 		BinDir:         must.String(filepath.Abs(must.String(filepath.EvalSymlinks(cf.BinDir)))),
-		TMuxNetwork:    net.ParseIP(cf.TMuxNetwork),
+		Network:        net.ParseIP(cf.Network),
 		TestingMode:    cf.TestingMode,
 		VerboseLogging: cf.VerboseLogging,
 	}

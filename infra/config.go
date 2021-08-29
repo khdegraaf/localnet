@@ -28,8 +28,8 @@ type Config struct {
 	// BinDir is the path where all binaries are present
 	BinDir string
 
-	// TMuxNetwork is the IP network for processes executed directly in tmux
-	TMuxNetwork net.IP
+	// Network is the IP network for processes executed in tmux or direct targets
+	Network net.IP
 
 	// TestingMode means we are in testing mode and deployment should not block execution
 	TestingMode bool

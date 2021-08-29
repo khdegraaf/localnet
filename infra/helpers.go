@@ -3,8 +3,10 @@ package infra
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io/ioutil"
 	"net"
+	"sync"
 	"text/template"
 	"time"
 
@@ -54,4 +56,31 @@ func WaitUntilHealthy(ctx context.Context, app HealthCheckCapable) error {
 	return retry.Do(ctx, time.Second, func() error {
 		return app.HealthCheck(ctx)
 	})
+}
+
+// NewIPPool creates new IP pool
+func NewIPPool(startIP net.IP) *IPPool {
+	return &IPPool{
+		currentIP: startIP,
+	}
+}
+
+// IPPool generates IPs from pool
+type IPPool struct {
+	mu        sync.Mutex
+	currentIP net.IP
+}
+
+// Next returns next free IP from pool
+func (p *IPPool) Next() (net.IP, error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if p.currentIP[len(p.currentIP)-1] == 0xfe {
+		return nil, errors.New("no more IPs available")
+	}
+	p.currentIP[len(p.currentIP)-1]++
+	ip := make([]byte, len(p.currentIP))
+	copy(ip, p.currentIP)
+	return ip, nil
 }

@@ -2,9 +2,6 @@ package targets
 
 import (
 	"context"
-	"errors"
-	"net"
-	"sync"
 
 	"github.com/wojciech-sif/localnet/infra"
 	"github.com/wojciech-sif/localnet/tmux"
@@ -14,6 +11,7 @@ import (
 func NewTMux(config infra.Config) infra.Target {
 	return &TMux{
 		config: config,
+		ipPool: infra.NewIPPool(config.Network),
 	}
 }
 
@@ -21,17 +19,11 @@ func NewTMux(config infra.Config) infra.Target {
 type TMux struct {
 	config  infra.Config
 	session *tmux.Session
-
-	mu        sync.Mutex
-	currentIP net.IP
+	ipPool  *infra.IPPool
 }
 
 // Deploy deploys environment to tmux target
 func (t *TMux) Deploy(ctx context.Context, env infra.Set) error {
-	t.mu.Lock()
-	t.currentIP = t.config.TMuxNetwork
-	t.mu.Unlock()
-
 	t.session = tmux.NewSession(t.config.EnvName, t.config.LogDir)
 	newSession, err := t.session.Init(ctx)
 	if err != nil {
@@ -51,7 +43,7 @@ func (t *TMux) Deploy(ctx context.Context, env infra.Set) error {
 // DeployBinary starts binary file inside tmux session
 func (t *TMux) DeployBinary(ctx context.Context, app infra.Binary) (infra.Deployment, error) {
 	var deployment infra.Deployment
-	ip, err := t.ip()
+	ip, err := t.ipPool.Next()
 	if err != nil {
 		return deployment, err
 	}
@@ -69,17 +61,4 @@ func (t *TMux) DeployBinary(ctx context.Context, app infra.Binary) (infra.Deploy
 // DeployContainer starts container inside tmux session
 func (t *TMux) DeployContainer(ctx context.Context, app infra.Container) (infra.Deployment, error) {
 	panic("not implemented yet")
-}
-
-func (t *TMux) ip() (net.IP, error) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
-	if t.currentIP[len(t.currentIP)-1] == 0xfe {
-		return nil, errors.New("no more IPs available")
-	}
-	t.currentIP[len(t.currentIP)-1]++
-	ip := make([]byte, len(t.currentIP))
-	copy(ip, t.currentIP)
-	return ip, nil
 }

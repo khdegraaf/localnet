@@ -50,7 +50,7 @@ func Activate(ctx context.Context, configF *ConfigFactory) error {
 		fmt.Sprintf("LOCALNET_HOME=%s", configF.HomeDir),
 		fmt.Sprintf("LOCALNET_TARGET=%s", configF.Target),
 		fmt.Sprintf("LOCALNET_BIN_DIR=%s", configF.BinDir),
-		fmt.Sprintf("LOCALNET_TMUX_NETWORK=%s", configF.TMuxNetwork),
+		fmt.Sprintf("LOCALNET_NETWORK=%s", configF.Network),
 		fmt.Sprintf("LOCALNET_VERBOSE=%t", configF.VerboseLogging),
 	)
 	bash.Dir = config.LogDir

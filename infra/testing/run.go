@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 	"runtime/debug"
 
 	"github.com/wojciech-sif/localnet/infra"
@@ -21,18 +22,28 @@ func (err errPanic) Error() string {
 }
 
 // Run deploys testing environment and runs tests there
-func Run(ctx context.Context, target infra.Target, env infra.Set, tests []*T) error {
+func Run(ctx context.Context, target infra.Target, env infra.Set, tests []*T, filters []*regexp.Regexp) error {
+	toRun := make([]*T, 0, len(tests))
 	for _, test := range tests {
+		if !matchesAny(test.name, filters) {
+			continue
+		}
 		if err := test.prepare(ctx); err != nil {
 			return err
 		}
+		toRun = append(toRun, test)
 	}
+
+	if len(toRun) == 0 {
+		return errors.New("there are no tests to run")
+	}
+
 	if err := target.Deploy(ctx, env); err != nil {
 		return err
 	}
 
 	failed := false
-	for _, t := range tests {
+	for _, t := range toRun {
 		runTest(logger.With(ctx, zap.String("test", t.name)), t)
 		failed = failed || t.failed
 	}
@@ -41,6 +52,18 @@ func Run(ctx context.Context, target infra.Target, env infra.Set, tests []*T) er
 	}
 	logger.Get(ctx).Info("All tests succeeded")
 	return nil
+}
+
+func matchesAny(val string, regs []*regexp.Regexp) bool {
+	if len(regs) == 0 {
+		return true
+	}
+	for _, reg := range regs {
+		if reg.MatchString(val) {
+			return true
+		}
+	}
+	return false
 }
 
 func runTest(ctx context.Context, t *T) {

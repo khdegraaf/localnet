@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"regexp"
 
 	"github.com/ridge/must"
 	"github.com/spf13/cobra"
@@ -95,6 +96,9 @@ type ConfigFactory struct {
 	// TestingMode means we are in testing mode and deployment should not block execution
 	TestingMode bool
 
+	// TestFilters are regular expressions used to filter tests to run
+	TestFilters []string
+
 	// VerboseLogging turns on verbose logging
 	VerboseLogging bool
 }
@@ -121,6 +125,10 @@ func (cf *ConfigFactory) Config() infra.Config {
 		Network:        net.ParseIP(cf.Network),
 		TestingMode:    cf.TestingMode,
 		VerboseLogging: cf.VerboseLogging,
+	}
+
+	for _, v := range cf.TestFilters {
+		config.TestFilters = append(config.TestFilters, regexp.MustCompile(v))
 	}
 
 	createDirs(config)

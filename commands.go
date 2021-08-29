@@ -40,6 +40,7 @@ func Activate(ctx context.Context, configF *ConfigFactory) error {
 
 	must.OK(ioutil.WriteFile(config.WrapperDir+"/l", []byte(fmt.Sprintf("#!/bin/bash\nexec %s \"$@\"", exe)), 0o700))
 	must.OK(ioutil.WriteFile(config.WrapperDir+"/start", []byte(fmt.Sprintf("#!/bin/bash\nexec %s start \"$@\"", exe)), 0o700))
+	must.OK(ioutil.WriteFile(config.WrapperDir+"/tests", []byte(fmt.Sprintf("#!/bin/bash\nexec %s tests \"$@\"", exe)), 0o700))
 	must.OK(ioutil.WriteFile(config.WrapperDir+"/spec", []byte(fmt.Sprintf("#!/bin/bash\nexec %s spec \"$@\"", exe)), 0o700))
 	must.OK(ioutil.WriteFile(config.WrapperDir+"/logs", []byte(fmt.Sprintf("#!/bin/bash\nexec tail -f -n +0 \"%s/$1.log\"", config.LogDir)), 0o700))
 
@@ -53,6 +54,7 @@ func Activate(ctx context.Context, configF *ConfigFactory) error {
 		fmt.Sprintf("LOCALNET_TARGET=%s", configF.Target),
 		fmt.Sprintf("LOCALNET_BIN_DIR=%s", configF.BinDir),
 		fmt.Sprintf("LOCALNET_NETWORK=%s", configF.Network),
+		fmt.Sprintf("LOCALNET_FILTERS=%s", strings.Join(configF.TestFilters, ",")),
 		fmt.Sprintf("LOCALNET_VERBOSE=%t", configF.VerboseLogging),
 	)
 	bash.Stdin = tty
@@ -69,10 +71,10 @@ func Start(ctx context.Context, config infra.Config, target infra.Target, set in
 	return saveSpec(config.HomeDir, spec)
 }
 
-// Test runs integration tests
-func Test(ctx context.Context, config infra.Config, target infra.Target, appF *apps.Factory, spec *infra.Spec) error {
+// Tests runs integration tests
+func Tests(ctx context.Context, config infra.Config, target infra.Target, appF *apps.Factory, spec *infra.Spec) error {
 	env, tests := tests.Tests(appF)
-	if err := testing.Run(ctx, target, env, tests); err != nil {
+	if err := testing.Run(ctx, target, env, tests, config.TestFilters); err != nil {
 		return err
 	}
 	return saveSpec(config.HomeDir, spec)

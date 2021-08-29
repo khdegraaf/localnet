@@ -1,6 +1,9 @@
 package infra
 
-import "net"
+import (
+	"net"
+	"regexp"
+)
 
 // Config stores configuration
 type Config struct {
@@ -33,6 +36,9 @@ type Config struct {
 
 	// TestingMode means we are in testing mode and deployment should not block execution
 	TestingMode bool
+
+	// TestFilters are regular expressions used to filter tests to run
+	TestFilters []*regexp.Regexp
 
 	// VerboseLogging turns on verbose logging
 	VerboseLogging bool

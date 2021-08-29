@@ -23,6 +23,7 @@ func main() {
 		rootCmd.PersistentFlags().BoolVarP(&configF.VerboseLogging, "verbose", "v", defaultBool("LOCALNET_VERBOSE", false), "Turns on verbose logging")
 		addFlags(rootCmd, c, configF)
 		addSetFlag(rootCmd, c, configF)
+		addFilterFlag(rootCmd, configF)
 
 		startCmd := &cobra.Command{
 			Use:   "start",
@@ -33,13 +34,14 @@ func main() {
 		addSetFlag(startCmd, c, configF)
 		rootCmd.AddCommand(startCmd)
 
-		testCmd := &cobra.Command{
-			Use:   "test",
+		testsCmd := &cobra.Command{
+			Use:   "tests",
 			Short: "Runs integration tests",
-			RunE:  cmdF.Cmd(localnet.Test),
+			RunE:  cmdF.Cmd(localnet.Tests),
 		}
-		addFlags(testCmd, c, configF)
-		rootCmd.AddCommand(testCmd)
+		addFlags(testsCmd, c, configF)
+		addFilterFlag(testsCmd, configF)
+		rootCmd.AddCommand(testsCmd)
 
 		rootCmd.AddCommand(&cobra.Command{
 			Use:   "spec",
@@ -61,6 +63,10 @@ func addSetFlag(cmd *cobra.Command, c *ioc.Container, configF *localnet.ConfigFa
 	cmd.Flags().StringVar(&configF.SetName, "set", defaultString("LOCALNET_SET", "dev"), "Application set to deploy: "+strings.Join(c.Names((*infra.Set)(nil)), " | "))
 }
 
+func addFilterFlag(cmd *cobra.Command, configF *localnet.ConfigFactory) {
+	cmd.Flags().StringArrayVar(&configF.TestFilters, "filter", defaultFilters("LOCALNET_FILTERS"), "Regular expression used to filter tests to run")
+}
+
 func defaultString(env, def string) string {
 	val := os.Getenv(env)
 	if val == "" {
@@ -78,4 +84,12 @@ func defaultBool(env string, def bool) bool {
 	default:
 		return def
 	}
+}
+
+func defaultFilters(env string) []string {
+	val := os.Getenv(env)
+	if val == "" {
+		return nil
+	}
+	return strings.Split(val, ",")
 }

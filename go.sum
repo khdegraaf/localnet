@@ -233,8 +233,9 @@ github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/
 github.com/subosito/gotenv v1.2.0/go.mod h1:N0PQaV/YGNqwC0u51sEeR/aUtSLEXKX9iv69rRypqCw=
 github.com/wojciech-malota-wojcik/build v0.0.0-20210131144749-3ef5b00b908f h1:UhHDRMXkiNOtXZSMptIDwqYIjXzHYQaZhxBZ1CqTiAk=
 github.com/wojciech-malota-wojcik/build v0.0.0-20210131144749-3ef5b00b908f/go.mod h1:lqo2+kb8wRSJFTYbMhxLkX+3obxWk708nXhUHy3UKqI=
-github.com/wojciech-malota-wojcik/ioc v1.3.1-0.20210124163806-1a91e377508b h1:fpxIIa9il7mjPZjXzqzgtW3910qSUdssU0WXZuUKhJM=
 github.com/wojciech-malota-wojcik/ioc v1.3.1-0.20210124163806-1a91e377508b/go.mod h1:6ZFRcYxphk5TtF3iJygJRL+b9MIYpce5DnjLl5vl/N0=
+github.com/wojciech-malota-wojcik/ioc v1.3.1-0.20210829092813-3edb43f522c7 h1:vmwH8A03j8OMe7YhvXp2ff0x2umFt0zaghMtC5nQiRo=
+github.com/wojciech-malota-wojcik/ioc v1.3.1-0.20210829092813-3edb43f522c7/go.mod h1:6ZFRcYxphk5TtF3iJygJRL+b9MIYpce5DnjLl5vl/N0=
 github.com/yuin/goldmark v1.1.25/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.32/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=

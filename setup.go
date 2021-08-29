@@ -30,6 +30,7 @@ func IoC(c *ioc.Container) {
 	c.Transient(apps.NewFactory)
 	c.TransientNamed("dev", DevSet)
 	c.TransientNamed("single", SingleChainSet)
+	c.TransientNamed("test", TestSet)
 	c.Transient(func(c *ioc.Container, config infra.Config) infra.Set {
 		var set infra.Set
 		c.ResolveNamed(config.SetName, &set)

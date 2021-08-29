@@ -3,6 +3,7 @@ package localnet
 import (
 	"github.com/wojciech-sif/localnet/infra"
 	"github.com/wojciech-sif/localnet/infra/apps"
+	"github.com/wojciech-sif/localnet/tests"
 )
 
 // DevSet is the environment for developer
@@ -21,4 +22,10 @@ func SingleChainSet(af *apps.Factory) infra.Set {
 	return infra.Set{
 		af.Sifchain("sifchain"),
 	}
+}
+
+// TestSet returns environment used for testing
+func TestSet(af *apps.Factory) infra.Set {
+	env, _ := tests.Tests(af)
+	return env
 }

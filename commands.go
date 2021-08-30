@@ -3,6 +3,7 @@ package localnet
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -57,6 +58,7 @@ func Activate(ctx context.Context, configF *ConfigFactory) error {
 		fmt.Sprintf("LOCALNET_FILTERS=%s", strings.Join(configF.TestFilters, ",")),
 		fmt.Sprintf("LOCALNET_VERBOSE=%t", configF.VerboseLogging),
 	)
+	bash.Dir = config.LogDir
 	bash.Stdin = tty
 	bash.Stdout = tty
 	bash.Stderr = tty
@@ -81,15 +83,20 @@ func Tests(ctx context.Context, config infra.Config, target infra.Target, appF *
 }
 
 // Spec print specification of running environment
-func Spec(config infra.Config) error {
-	spec, err := ioutil.ReadFile(config.HomeDir + "/spec.json")
+func Spec(config infra.Config, _ infra.Set, spec *infra.Spec) error {
+	specContent, err := ioutil.ReadFile(config.HomeDir + "/spec.json")
 	if err != nil {
-		return err
+		if !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+		fmt.Println(string(must.Bytes(json.MarshalIndent(spec, "", "  "))))
+		return nil
 	}
-	fmt.Println(string(spec))
+	fmt.Println(string(specContent))
 	return nil
 }
 
 func saveSpec(homeDir string, spec *infra.Spec) error {
+	spec.Running = true
 	return ioutil.WriteFile(homeDir+"/spec.json", must.Bytes(json.MarshalIndent(spec, "", "  ")), 0o600)
 }

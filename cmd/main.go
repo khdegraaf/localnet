@@ -19,9 +19,10 @@ func main() {
 			RunE:  cmdF.Cmd(localnet.Activate),
 		}
 		rootCmd.PersistentFlags().StringVar(&configF.EnvName, "env", defaultString("LOCALNET_ENV", "localnet"), "Name of the environment to run in")
+		rootCmd.PersistentFlags().StringVar(&configF.Target, "target", defaultString("LOCALNET_TARGET", "tmux"), "Target of the deployment: "+strings.Join(c.Names((*infra.Target)(nil)), " | "))
 		rootCmd.PersistentFlags().StringVar(&configF.HomeDir, "home", defaultString("LOCALNET_HOME", must.String(os.UserHomeDir())+"/.localnet"), "Directory where all files created automatically by localnet are stored")
 		rootCmd.PersistentFlags().BoolVarP(&configF.VerboseLogging, "verbose", "v", defaultBool("LOCALNET_VERBOSE", false), "Turns on verbose logging")
-		addFlags(rootCmd, c, configF)
+		addFlags(rootCmd, configF)
 		addSetFlag(rootCmd, c, configF)
 		addFilterFlag(rootCmd, configF)
 
@@ -30,7 +31,7 @@ func main() {
 			Short: "Starts dev environment",
 			RunE:  cmdF.Cmd(localnet.Start),
 		}
-		addFlags(startCmd, c, configF)
+		addFlags(startCmd, configF)
 		addSetFlag(startCmd, c, configF)
 		rootCmd.AddCommand(startCmd)
 
@@ -39,22 +40,23 @@ func main() {
 			Short: "Runs integration tests",
 			RunE:  cmdF.Cmd(localnet.Tests),
 		}
-		addFlags(testsCmd, c, configF)
+		addFlags(testsCmd, configF)
 		addFilterFlag(testsCmd, configF)
 		rootCmd.AddCommand(testsCmd)
 
-		rootCmd.AddCommand(&cobra.Command{
+		specCmd := &cobra.Command{
 			Use:   "spec",
 			Short: "Prints specification of running environment",
 			RunE:  cmdF.Cmd(localnet.Spec),
-		})
+		}
+		addSetFlag(specCmd, c, configF)
+		rootCmd.AddCommand(specCmd)
 
 		return rootCmd.Execute()
 	})
 }
 
-func addFlags(cmd *cobra.Command, c *ioc.Container, configF *localnet.ConfigFactory) {
-	cmd.Flags().StringVar(&configF.Target, "target", defaultString("LOCALNET_TARGET", "tmux"), "Target of the deployment: "+strings.Join(c.Names((*infra.Target)(nil)), " | "))
+func addFlags(cmd *cobra.Command, configF *localnet.ConfigFactory) {
 	cmd.Flags().StringVar(&configF.BinDir, "bin-dir", defaultString("LOCALNET_BIN_DIR", must.String(os.UserHomeDir())+"/go/bin"), "Path to directory where executables exist")
 	cmd.Flags().StringVar(&configF.Network, "network", defaultString("LOCALNET_NETWORK", "127.1.0.0"), "Network where IPs for applications are taken from (related to 'tmux' and 'direct' targets only)")
 }

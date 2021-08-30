@@ -99,15 +99,32 @@ type Container struct {
 }
 
 // NewSpec returns new spec
-func NewSpec() *Spec {
+func NewSpec(config Config) *Spec {
 	return &Spec{
-		Apps: map[string]*AppDescription{},
+		Target: config.Target,
+		Set:    config.SetName,
+		Env:    config.EnvName,
+		Apps:   map[string]*AppDescription{},
 	}
 }
 
 // Spec describes running environment
 type Spec struct {
-	mu   sync.Mutex
+	// Target is the name of target being used to run apps
+	Target string `json:"target"`
+
+	// Set is the name of app set
+	Set string `json:"set"`
+
+	// Env is the name of env
+	Env string `json:"env"`
+
+	// Running indicates if apps are running
+	Running bool `json:"running"`
+
+	mu sync.Mutex
+
+	// Apps is the description of running apps
 	Apps map[string]*AppDescription `json:"apps"`
 }
 
@@ -117,8 +134,7 @@ func (s *Spec) DescribeApp(appType string, name string) *AppDescription {
 	defer s.mu.Unlock()
 
 	appDesc := &AppDescription{
-		Type:      appType,
-		Endpoints: map[string]string{},
+		Type: appType,
 	}
 	s.Apps[name] = appDesc
 	return appDesc
@@ -129,14 +145,41 @@ type AppDescription struct {
 	// Type is the type of app
 	Type string `json:"type"`
 
+	mu sync.Mutex
+
 	// Endpoints describe endpoints exposed by application
-	Endpoints map[string]string `json:"endpoints"`
+	Endpoints map[string]string `json:"endpoints,omitempty"`
+
+	// Params is a space for any parameters declared by application
+	Params map[string]string `json:"params,omitempty"`
 }
 
-// DescribeEndpoint adds endpoint to app description
-func (a *AppDescription) DescribeEndpoint(name, endpoint string) {
+// AddEndpoint adds endpoint to app description
+func (a *AppDescription) AddEndpoint(name, endpoint string) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	if a.Endpoints == nil {
+		a.Endpoints = map[string]string{}
+	}
+
 	if _, exists := a.Endpoints[name]; exists {
 		panic(fmt.Sprintf("endpoint %s already exists", name))
 	}
 	a.Endpoints[name] = endpoint
+}
+
+// AddParam adds parameter to app description
+func (a *AppDescription) AddParam(name, value string) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	if a.Params == nil {
+		a.Params = map[string]string{}
+	}
+
+	if _, exists := a.Params[name]; exists {
+		panic(fmt.Sprintf("param %s already exists", name))
+	}
+	a.Params[name] = value
 }

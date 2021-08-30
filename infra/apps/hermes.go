@@ -16,22 +16,25 @@ import (
 
 // NewHermes creates new hermes app
 func NewHermes(config infra.Config, name string, spec *infra.Spec, chainA, chainB hermes.Peer) *Hermes {
+	appDesc := spec.DescribeApp("hermes", name)
+	appDesc.AddParam("chainA", chainA.Name())
+	appDesc.AddParam("chainB", chainB.Name())
 	return &Hermes{
-		config: config,
-		spec:   spec,
-		name:   name,
-		chainA: chainA,
-		chainB: chainB,
+		config:  config,
+		appDesc: appDesc,
+		name:    name,
+		chainA:  chainA,
+		chainB:  chainB,
 	}
 }
 
 // Hermes represents hermes relayer
 type Hermes struct {
-	config infra.Config
-	spec   *infra.Spec
-	name   string
-	chainA hermes.Peer
-	chainB hermes.Peer
+	config  infra.Config
+	appDesc *infra.AppDescription
+	name    string
+	chainA  hermes.Peer
+	chainB  hermes.Peer
 }
 
 // Name returns name of app
@@ -142,8 +145,7 @@ trust_threshold = { numerator = '1', denominator = '3' }
 		return err
 	}
 
-	desc := h.spec.DescribeApp("hermes", h.name)
-	desc.DescribeEndpoint("telemetry", fmt.Sprintf("%s:3001", deployment.IP))
+	h.appDesc.AddEndpoint("telemetry", fmt.Sprintf("%s:3001", deployment.IP))
 
 	return nil
 }

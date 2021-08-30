@@ -24,7 +24,7 @@ func NewSifchain(wrapperDir string, executor *sifchain.Executor, spec *infra.Spe
 		wrapperDir: wrapperDir,
 		executor:   executor,
 		genesis:    sifchain.NewGenesis(executor),
-		spec:       spec,
+		appDesc:    spec.DescribeApp("sifchain", executor.Name()),
 	}
 }
 
@@ -33,7 +33,7 @@ type Sifchain struct {
 	wrapperDir string
 	executor   *sifchain.Executor
 	genesis    *sifchain.Genesis
-	spec       *infra.Spec
+	appDesc    *infra.AppDescription
 
 	mu sync.RWMutex
 	ip net.IP
@@ -142,11 +142,10 @@ func (s *Sifchain) Deploy(ctx context.Context, target infra.AppTarget) error {
 	}
 	s.ip = deployment.IP
 
-	desc := s.spec.DescribeApp("sifchain", s.executor.Name())
-	desc.DescribeEndpoint("rpc", fmt.Sprintf("%s:26657", s.ip))
-	desc.DescribeEndpoint("p2p", fmt.Sprintf("%s:26656", s.ip))
-	desc.DescribeEndpoint("grpc", fmt.Sprintf("%s:9090", s.ip))
-	desc.DescribeEndpoint("pprof", fmt.Sprintf("%s:6060", s.ip))
+	s.appDesc.AddEndpoint("rpc", fmt.Sprintf("%s:26657", s.ip))
+	s.appDesc.AddEndpoint("p2p", fmt.Sprintf("%s:26656", s.ip))
+	s.appDesc.AddEndpoint("grpc", fmt.Sprintf("%s:9090", s.ip))
+	s.appDesc.AddEndpoint("pprof", fmt.Sprintf("%s:6060", s.ip))
 
 	return s.saveClientWrapper(s.wrapperDir)
 }

@@ -24,8 +24,8 @@ func SingleChainSet(af *apps.Factory) infra.Set {
 	}
 }
 
-// TestSet returns environment used for testing
-func TestSet(af *apps.Factory) infra.Set {
+// TestsSet returns environment used for testing
+func TestsSet(af *apps.Factory) infra.Set {
 	env, _ := tests.Tests(af)
 	return env
 }

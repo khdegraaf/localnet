@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/ridge/must"
+	"github.com/wojciech-malota-wojcik/ioc"
 	"github.com/wojciech-sif/localnet/exec"
 	"github.com/wojciech-sif/localnet/infra"
 	"github.com/wojciech-sif/localnet/infra/apps"
@@ -74,12 +75,17 @@ func Start(ctx context.Context, config infra.Config, target infra.Target, set in
 }
 
 // Tests runs integration tests
-func Tests(ctx context.Context, config infra.Config, target infra.Target, appF *apps.Factory, spec *infra.Spec) error {
-	env, tests := tests.Tests(appF)
-	if err := testing.Run(ctx, target, env, tests, config.TestFilters); err != nil {
-		return err
-	}
-	return saveSpec(config.HomeDir, spec)
+func Tests(c *ioc.Container, configF *ConfigFactory) error {
+	configF.TestingMode = true
+	var err error
+	c.Call(func(ctx context.Context, config infra.Config, target infra.Target, appF *apps.Factory, spec *infra.Spec) error {
+		env, tests := tests.Tests(appF)
+		if err := testing.Run(ctx, target, env, tests, config.TestFilters); err != nil {
+			return err
+		}
+		return saveSpec(config.HomeDir, spec)
+	}, &err)
+	return err
 }
 
 // Spec print specification of running environment

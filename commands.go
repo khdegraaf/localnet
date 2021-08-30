@@ -77,6 +77,7 @@ func Start(ctx context.Context, config infra.Config, target infra.Target, set in
 // Tests runs integration tests
 func Tests(c *ioc.Container, configF *ConfigFactory) error {
 	configF.TestingMode = true
+	configF.SetName = "tests"
 	var err error
 	c.Call(func(ctx context.Context, config infra.Config, target infra.Target, appF *apps.Factory, spec *infra.Spec) error {
 		env, tests := tests.Tests(appF)

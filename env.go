@@ -8,19 +8,19 @@ import (
 
 // DevSet is the environment for developer
 func DevSet(af *apps.Factory) infra.Set {
+	return infra.Set{
+		af.Sifchain("sifchain"),
+	}
+}
+
+// FullSet is the environment with all apps
+func FullSet(af *apps.Factory) infra.Set {
 	sifchainA := af.Sifchain("sifchain-a")
 	sifchainB := af.Sifchain("sifchain-b")
 	return infra.Set{
 		sifchainA,
 		sifchainB,
 		af.Hermes("hermes", sifchainA, sifchainB),
-	}
-}
-
-// SingleChainSet is the environment with one sifchain
-func SingleChainSet(af *apps.Factory) infra.Set {
-	return infra.Set{
-		af.Sifchain("sifchain"),
 	}
 }
 

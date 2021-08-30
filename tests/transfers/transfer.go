@@ -5,14 +5,13 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/wojciech-sif/localnet/lib/logger"
-	"go.uber.org/zap"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/wojciech-sif/localnet/infra/apps"
 	"github.com/wojciech-sif/localnet/infra/apps/sifchain"
 	"github.com/wojciech-sif/localnet/infra/testing"
+	"github.com/wojciech-sif/localnet/lib/logger"
+	"go.uber.org/zap"
 )
 
 // VerifyInitialBalance checks that initial balance is set by genesis block

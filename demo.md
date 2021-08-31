@@ -119,7 +119,7 @@ $ localnet spec --env=localnet6
 
 ### TMux
 ```
-localnet start
+$ localnet start
 ```
 
 ### Direct

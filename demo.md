@@ -27,7 +27,7 @@ $ localnet
 
 ### Shortcuts
 ```
-start
+$ start
 ```
 
 ### Logs

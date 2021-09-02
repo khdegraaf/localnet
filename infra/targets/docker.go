@@ -40,16 +40,14 @@ func (d *Docker) Deploy(ctx context.Context, env infra.Set) error {
 }
 
 // DeployBinary builds container image out of binary file and starts it in docker
-func (d *Docker) DeployBinary(ctx context.Context, app infra.Binary) (infra.Deployment, error) {
-	var deployment infra.Deployment
-
-	if err := infra.PreprocessApp(ctx, net.IPv4zero, app.AppBase); err != nil {
-		return deployment, err
+func (d *Docker) DeployBinary(ctx context.Context, app infra.Binary) error {
+	if err := infra.PreprocessApp(ctx, net.IPv4zero, d.config.AppDir, app.AppBase); err != nil {
+		return err
 	}
 
 	buf := &bytes.Buffer{}
 	if err := dockerTpl.Execute(buf, app); err != nil {
-		return deployment, err
+		return err
 	}
 
 	image := app.Name + ":latest"
@@ -66,21 +64,19 @@ func (d *Docker) DeployBinary(ctx context.Context, app infra.Binary) (infra.Depl
 		ipCmd,
 	)
 	if err != nil {
-		return deployment, err
+		return err
 	}
 
 	err = osexec.Command("bash", "-ce",
 		fmt.Sprintf("%s > \"%s/%s.log\" 2>&1", exec.Docker("logs", "-f", name).String(),
 			d.config.LogDir, app.Name)).Start()
 	if err != nil {
-		return deployment, err
+		return err
 	}
-
-	deployment.IP = net.ParseIP(strings.TrimSuffix(ipBuf.String(), "\n"))
-	return deployment, nil
+	return infra.PostprocessApp(ctx, net.ParseIP(strings.TrimSuffix(ipBuf.String(), "\n")), app.AppBase)
 }
 
 // DeployContainer starts container in docker
-func (d *Docker) DeployContainer(ctx context.Context, app infra.Container) (infra.Deployment, error) {
+func (d *Docker) DeployContainer(ctx context.Context, app infra.Container) error {
 	panic("not implemented yet")
 }

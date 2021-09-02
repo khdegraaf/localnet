@@ -3,7 +3,12 @@ package rnd
 import (
 	"fmt"
 	"math/rand"
+	"time"
 )
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
 
 var (
 	left = [...]string{

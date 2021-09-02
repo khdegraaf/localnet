@@ -35,8 +35,8 @@ type Sifchain struct {
 	genesis    *sifchain.Genesis
 	appDesc    *infra.AppDescription
 
+	// mu is here to protect appDesc.IP
 	mu sync.RWMutex
-	ip net.IP
 }
 
 // ID returns chain ID
@@ -54,7 +54,7 @@ func (s *Sifchain) IP() net.IP {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	return s.ip
+	return s.appDesc.IP
 }
 
 // Genesis returns configurator of genesis block
@@ -64,18 +64,18 @@ func (s *Sifchain) Genesis() *sifchain.Genesis {
 
 // Client creates new client for sifchain blockchain
 func (s *Sifchain) Client() *sifchain.Client {
-	return sifchain.NewClient(s.executor, s.ip)
+	return sifchain.NewClient(s.executor, s.IP())
 }
 
 // HealthCheck checks if sifchain is empty
 func (s *Sifchain) HealthCheck(ctx context.Context) error {
-	if s.ip == nil {
+	if s.IP() == nil {
 		return retry.Retryable(fmt.Errorf("sifchain hasn't started yet"))
 	}
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
-	req := must.HTTPRequest(http.NewRequestWithContext(ctx, http.MethodGet, "http://"+s.ip.String()+":26657/status", nil))
+	req := must.HTTPRequest(http.NewRequestWithContext(ctx, http.MethodGet, "http://"+s.IP().String()+":26657/status", nil))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -113,11 +113,9 @@ func (s *Sifchain) HealthCheck(ctx context.Context) error {
 
 // Deploy deploys sifchain app to the target
 func (s *Sifchain) Deploy(ctx context.Context, target infra.AppTarget) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	deployment, err := target.DeployBinary(ctx, infra.Binary{
-		Path: s.executor.Bin(),
+	return target.DeployBinary(ctx, infra.Binary{
+		Path:       s.executor.Bin(),
+		RequiresIP: true,
 		AppBase: infra.AppBase{
 			Name: s.executor.Name(),
 			Args: []string{
@@ -135,26 +133,29 @@ func (s *Sifchain) Deploy(ctx context.Context, target infra.AppTarget) error {
 			PreFunc: func(ctx context.Context) error {
 				return s.executor.PrepareNode(ctx, s.genesis)
 			},
+			PostFunc: func(ctx context.Context, deployment infra.Deployment) error {
+				s.mu.Lock()
+				defer s.mu.Unlock()
+
+				s.appDesc.IP = deployment.IP
+				s.appDesc.AddEndpoint("rpc", fmt.Sprintf("%s:26657", deployment.IP))
+				s.appDesc.AddEndpoint("p2p", fmt.Sprintf("%s:26656", deployment.IP))
+				s.appDesc.AddEndpoint("grpc", fmt.Sprintf("%s:9090", deployment.IP))
+				s.appDesc.AddEndpoint("pprof", fmt.Sprintf("%s:6060", deployment.IP))
+
+				return s.saveClientWrapper(s.wrapperDir)
+			},
 		},
 	})
-	if err != nil {
-		return err
-	}
-	s.ip = deployment.IP
-
-	s.appDesc.AddEndpoint("rpc", fmt.Sprintf("%s:26657", s.ip))
-	s.appDesc.AddEndpoint("p2p", fmt.Sprintf("%s:26656", s.ip))
-	s.appDesc.AddEndpoint("grpc", fmt.Sprintf("%s:9090", s.ip))
-	s.appDesc.AddEndpoint("pprof", fmt.Sprintf("%s:6060", s.ip))
-
-	return s.saveClientWrapper(s.wrapperDir)
 }
 
 func (s *Sifchain) saveClientWrapper(wrapperDir string) error {
+	// Call to this function is already protected by mutex so referencing s.appDesc.IP here is safe
+
 	client := `#!/bin/sh
 OPTS=""
 if [ "$1" == "tx" ] || [ "$1" == "q" ]; then
-	OPTS="$OPTS --chain-id ""` + s.executor.Name() + `"" --node ""tcp://` + s.ip.String() + `:26657"""
+	OPTS="$OPTS --chain-id ""` + s.executor.Name() + `"" --node ""tcp://` + s.appDesc.IP.String() + `:26657"""
 fi
 if [ "$1" == "tx" ] || [ "$1" == "keys" ]; then
 	OPTS="$OPTS --keyring-backend ""test"""

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"sync"
+	"time"
 )
 
 // App is the interface exposed by application
@@ -40,10 +41,10 @@ type Target interface {
 // AppTarget represents target of deployment from the perspective of application
 type AppTarget interface {
 	// DeployBinary deploys binary to the target
-	DeployBinary(ctx context.Context, app Binary) (Deployment, error)
+	DeployBinary(ctx context.Context, app Binary) error
 
 	// DeployContainer deploys container to the target
-	DeployContainer(ctx context.Context, app Container) (Deployment, error)
+	DeployContainer(ctx context.Context, app Container) error
 }
 
 // File represents file to be created for application
@@ -51,8 +52,13 @@ type File struct {
 	// Path is the path to file
 	Path string
 
-	// Content represents content of file
+	// Content represents content of file. Takes precedence over `ContentFunc`
 	Content []byte
+
+	// ContentFunc is a function returning content of the file.
+	// It is called if `Content` is empty.
+	// It is called before application's `PreFunc` but after verifying that all the apps specified in `Requires` are healthy.
+	ContentFunc func() []byte
 
 	// Preprocess tells if file should be preprocessed using data delivered by target
 	Preprocess bool
@@ -60,6 +66,18 @@ type File struct {
 
 // PreprocessFunc is the function called to preprocess app
 type PreprocessFunc func(ctx context.Context) error
+
+// PostprocessFunc is the function called after application is deployed
+type PostprocessFunc func(ctx context.Context, deployment Deployment) error
+
+// Prerequisites specifies list of other apps which have to be healthy because app may be started.
+type Prerequisites struct {
+	// Timeout tells how long we should wait for prerequisite to become healthy
+	Timeout time.Duration
+
+	// Dependencies specifies a list of health checks this app depends on
+	Dependencies []HealthCheckCapable
+}
 
 // AppBase contain properties common to all types of app
 type AppBase struct {
@@ -75,8 +93,14 @@ type AppBase struct {
 	// Copy lists all the files and dirs required by the application
 	Copy []string
 
-	// Func is called to preprocess app
+	// Requires is the list of health checks to be required before app can be deployed
+	Requires Prerequisites
+
+	// PreFunc is called to preprocess app
 	PreFunc PreprocessFunc
+
+	// PostFunc is called after app is deployed
+	PostFunc PostprocessFunc
 }
 
 // Binary represents binary file to be deployed
@@ -85,6 +109,9 @@ type Binary struct {
 
 	// Path is the path to binary file
 	Path string
+
+	// RequiresIP set to true means app requires an IP address
+	RequiresIP bool
 }
 
 // Container represents container to be deployed
@@ -144,6 +171,9 @@ func (s *Spec) DescribeApp(appType string, name string) *AppDescription {
 type AppDescription struct {
 	// Type is the type of app
 	Type string `json:"type"`
+
+	// IP is the IP reserved for this application
+	IP net.IP `json:"ip,omitempty"`
 
 	mu sync.Mutex
 

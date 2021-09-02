@@ -2,6 +2,7 @@ package targets
 
 import (
 	"context"
+	"net"
 
 	"github.com/wojciech-sif/localnet/infra"
 	"github.com/wojciech-sif/localnet/tmux"
@@ -25,40 +26,43 @@ type TMux struct {
 // Deploy deploys environment to tmux target
 func (t *TMux) Deploy(ctx context.Context, env infra.Set) error {
 	t.session = tmux.NewSession(t.config.EnvName, t.config.LogDir)
-	newSession, err := t.session.Init(ctx)
-	if err != nil {
+	if err := t.session.Init(ctx); err != nil {
 		return err
 	}
-	if newSession {
-		if err := env.Deploy(ctx, t); err != nil {
-			return err
-		}
+	if err := env.Deploy(ctx, t); err != nil {
+		return err
 	}
-	if !t.config.TestingMode {
-		return t.session.Attach(ctx)
+	if t.config.TestingMode {
+		return nil
 	}
-	return nil
+	return t.session.Attach(ctx)
 }
 
 // DeployBinary starts binary file inside tmux session
-func (t *TMux) DeployBinary(ctx context.Context, app infra.Binary) (infra.Deployment, error) {
-	var deployment infra.Deployment
-	ip, err := t.ipPool.Next()
-	if err != nil {
-		return deployment, err
+func (t *TMux) DeployBinary(ctx context.Context, app infra.Binary) error {
+	if exists, err := t.session.HasApp(ctx, app.Name); err != nil || exists {
+		return err
 	}
 
-	if err := infra.PreprocessApp(ctx, ip, app.AppBase); err != nil {
-		return deployment, err
+	var ip net.IP
+	if app.RequiresIP {
+		var err error
+		ip, err = t.ipPool.Next()
+		if err != nil {
+			return err
+		}
+	}
+
+	if err := infra.PreprocessApp(ctx, ip, t.config.AppDir, app.AppBase); err != nil {
+		return err
 	}
 	if err := t.session.StartApp(ctx, app.Name, append([]string{app.Path}, app.Args...)...); err != nil {
-		return deployment, err
+		return err
 	}
-	deployment.IP = ip
-	return deployment, nil
+	return infra.PostprocessApp(ctx, ip, app.AppBase)
 }
 
 // DeployContainer starts container inside tmux session
-func (t *TMux) DeployContainer(ctx context.Context, app infra.Container) (infra.Deployment, error) {
+func (t *TMux) DeployContainer(ctx context.Context, app infra.Container) error {
 	panic("not implemented yet")
 }

@@ -67,11 +67,13 @@ func Activate(ctx context.Context, configF *ConfigFactory) error {
 }
 
 // Start starts dev environment
-func Start(ctx context.Context, config infra.Config, target infra.Target, set infra.Set, spec *infra.Spec) error {
-	if err := target.Deploy(ctx, set); err != nil {
-		return err
-	}
-	return saveSpec(config.HomeDir, spec)
+func Start(ctx context.Context, config infra.Config, target infra.Target, set infra.Set, spec *infra.Spec) (retErr error) {
+	defer func() {
+		if err := spec.Save(); retErr == nil {
+			retErr = err
+		}
+	}()
+	return target.Deploy(ctx, set)
 }
 
 // Tests runs integration tests
@@ -79,12 +81,15 @@ func Tests(c *ioc.Container, configF *ConfigFactory) error {
 	configF.TestingMode = true
 	configF.SetName = "tests"
 	var err error
-	c.Call(func(ctx context.Context, config infra.Config, target infra.Target, appF *apps.Factory, spec *infra.Spec) error {
+	c.Call(func(ctx context.Context, config infra.Config, target infra.Target, appF *apps.Factory, spec *infra.Spec) (retErr error) {
+		defer func() {
+			if err := spec.Save(); retErr == nil {
+				retErr = err
+			}
+		}()
+
 		env, tests := tests.Tests(appF)
-		if err := testing.Run(ctx, target, env, tests, config.TestFilters); err != nil {
-			return err
-		}
-		return saveSpec(config.HomeDir, spec)
+		return testing.Run(ctx, target, env, tests, config.TestFilters)
 	}, &err)
 	return err
 }
@@ -101,9 +106,4 @@ func Spec(config infra.Config, _ infra.Set, spec *infra.Spec) error {
 	}
 	fmt.Println(string(specContent))
 	return nil
-}
-
-func saveSpec(homeDir string, spec *infra.Spec) error {
-	spec.Running = true
-	return ioutil.WriteFile(homeDir+"/spec.json", must.Bytes(json.MarshalIndent(spec, "", "  ")), 0o600)
 }

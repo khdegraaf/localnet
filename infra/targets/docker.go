@@ -23,20 +23,22 @@ ENTRYPOINT ["{{ .Path }}"]
 var dockerTpl = template.Must(template.New("").Parse(dockerTplContent))
 
 // NewDocker creates new docker target
-func NewDocker(config infra.Config) infra.Target {
+func NewDocker(config infra.Config, spec *infra.Spec) infra.Target {
 	return &Docker{
 		config: config,
+		spec:   spec,
 	}
 }
 
 // Docker is the target deploying apps to docker
 type Docker struct {
 	config infra.Config
+	spec   *infra.Spec
 }
 
 // Deploy deploys environment to docker target
 func (d *Docker) Deploy(ctx context.Context, env infra.Set) error {
-	return env.Deploy(ctx, d)
+	return env.Deploy(ctx, d, d.spec)
 }
 
 // DeployBinary builds container image out of binary file and starts it in docker

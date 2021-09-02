@@ -10,9 +10,10 @@ import (
 )
 
 // NewDirect creates new direct target
-func NewDirect(config infra.Config) infra.Target {
+func NewDirect(config infra.Config, spec *infra.Spec) infra.Target {
 	return &Direct{
 		config: config,
+		spec:   spec,
 		ipPool: infra.NewIPPool(config.Network),
 	}
 }
@@ -20,12 +21,13 @@ func NewDirect(config infra.Config) infra.Target {
 // Direct is the target deploying apps to os processes
 type Direct struct {
 	config infra.Config
+	spec   *infra.Spec
 	ipPool *infra.IPPool
 }
 
 // Deploy deploys environment to os processes
 func (d *Direct) Deploy(ctx context.Context, env infra.Set) error {
-	return env.Deploy(ctx, d)
+	return env.Deploy(ctx, d, d.spec)
 }
 
 // DeployBinary starts binary file inside os process

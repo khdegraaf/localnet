@@ -2,14 +2,24 @@ package infra
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"net"
+	"os"
 	"sync"
 	"time"
+
+	"github.com/ridge/must"
 )
 
 // App is the interface exposed by application
 type App interface {
+	// Name returns name of application
+	Name() string
+
+	// Deploy deploys app to the target
 	Deploy(ctx context.Context, target AppTarget) error
 }
 
@@ -17,11 +27,15 @@ type App interface {
 type Set []App
 
 // Deploy deploys app in environment to the target
-func (s Set) Deploy(ctx context.Context, t AppTarget) error {
+func (s Set) Deploy(ctx context.Context, t AppTarget, spec *Spec) error {
 	for _, app := range s {
+		if appSpec, exists := spec.Apps[app.Name()]; exists && appSpec.Running {
+			continue
+		}
 		if err := app.Deploy(ctx, t); err != nil {
 			return err
 		}
+		spec.Apps[app.Name()].Running = true
 	}
 	return nil
 }
@@ -127,16 +141,42 @@ type Container struct {
 
 // NewSpec returns new spec
 func NewSpec(config Config) *Spec {
+	specFile := config.HomeDir + "/spec.json"
+	specRaw, err := ioutil.ReadFile(specFile)
+	switch {
+	case err == nil:
+		spec := &Spec{
+			specFile: specFile,
+		}
+		must.OK(json.Unmarshal(specRaw, spec))
+		if spec.Target != config.Target {
+			panic(fmt.Sprintf("target mismatch, spec: %s, config: %s", spec.Target, config.Target))
+		}
+		if spec.Env != config.EnvName {
+			panic(fmt.Sprintf("env mismatch, spec: %s, config: %s", spec.Env, config.EnvName))
+		}
+		if spec.Set != config.SetName {
+			panic(fmt.Sprintf("set mismatch, spec: %s, config: %s", spec.Set, config.SetName))
+		}
+		return spec
+	case errors.Is(err, os.ErrNotExist):
+	default:
+		panic(err)
+	}
+
 	return &Spec{
-		Target: config.Target,
-		Set:    config.SetName,
-		Env:    config.EnvName,
-		Apps:   map[string]*AppDescription{},
+		specFile: specFile,
+		Target:   config.Target,
+		Set:      config.SetName,
+		Env:      config.EnvName,
+		Apps:     map[string]*AppDescription{},
 	}
 }
 
 // Spec describes running environment
 type Spec struct {
+	specFile string
+
 	// Target is the name of target being used to run apps
 	Target string `json:"target"`
 
@@ -145,9 +185,6 @@ type Spec struct {
 
 	// Env is the name of env
 	Env string `json:"env"`
-
-	// Running indicates if apps are running
-	Running bool `json:"running"`
 
 	mu sync.Mutex
 
@@ -160,11 +197,23 @@ func (s *Spec) DescribeApp(appType string, name string) *AppDescription {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	if app, exists := s.Apps[name]; exists {
+		if app.Type != appType {
+			panic(fmt.Sprintf("app type doesn't match for application existing in spec: %s, expected: %s, got: %s", name, app.Type, appType))
+		}
+		return app
+	}
+
 	appDesc := &AppDescription{
 		Type: appType,
 	}
 	s.Apps[name] = appDesc
 	return appDesc
+}
+
+// Save saves spec into file
+func (s *Spec) Save() error {
+	return ioutil.WriteFile(s.specFile, must.Bytes(json.MarshalIndent(s, "", "  ")), 0o600)
 }
 
 // AppDescription describes app running in environment
@@ -174,6 +223,9 @@ type AppDescription struct {
 
 	// IP is the IP reserved for this application
 	IP net.IP `json:"ip,omitempty"`
+
+	// Running indicates if apps are running
+	Running bool `json:"running"`
 
 	mu sync.Mutex
 
@@ -193,8 +245,8 @@ func (a *AppDescription) AddEndpoint(name, endpoint string) {
 		a.Endpoints = map[string]string{}
 	}
 
-	if _, exists := a.Endpoints[name]; exists {
-		panic(fmt.Sprintf("endpoint %s already exists", name))
+	if value, exists := a.Endpoints[name]; exists && endpoint != value {
+		panic(fmt.Sprintf("conflict with existing endpoint: %s, expected: %s, got: %s", name, value, endpoint))
 	}
 	a.Endpoints[name] = endpoint
 }
@@ -208,8 +260,8 @@ func (a *AppDescription) AddParam(name, value string) {
 		a.Params = map[string]string{}
 	}
 
-	if _, exists := a.Params[name]; exists {
-		panic(fmt.Sprintf("param %s already exists", name))
+	if oldValue, exists := a.Params[name]; exists && oldValue != value {
+		panic(fmt.Sprintf("conflict with existing parameter: %s, expected: %s, got: %s", name, oldValue, value))
 	}
 	a.Params[name] = value
 }

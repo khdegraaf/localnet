@@ -1,11 +1,9 @@
 package tmux
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	osexec "os/exec"
-	"strings"
 
 	"github.com/wojciech-sif/localnet/exec"
 )
@@ -57,22 +55,6 @@ func (s *Session) Init(ctx context.Context) error {
 func (s *Session) StartApp(ctx context.Context, name string, args ...string) error {
 	return exec.Run(ctx, exec.TMux("new-window", "-d", "-n", name, "-t", s.name+":", "bash", "-ce",
 		fmt.Sprintf("%s 2>&1 | tee -a \"%s/%s.log\"\nwhile :; do read -sr; done", osexec.Command("", args...).String(), s.logDir, name)))
-}
-
-// HasApp returns true if app runs in the session
-func (s *Session) HasApp(ctx context.Context, name string) (bool, error) {
-	buf := &bytes.Buffer{}
-	cmd := exec.TMux("list-windows", "-t", s.name, "-F", "#{window_name}")
-	cmd.Stdout = buf
-	if err := exec.Run(ctx, cmd); err != nil {
-		return false, err
-	}
-	for _, window := range strings.Split(buf.String(), "\n") {
-		if window == name {
-			return true, nil
-		}
-	}
-	return false, nil
 }
 
 // Attach attaches terminal to tmux session

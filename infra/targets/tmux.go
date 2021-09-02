@@ -9,9 +9,10 @@ import (
 )
 
 // NewTMux creates new tmux target
-func NewTMux(config infra.Config) infra.Target {
+func NewTMux(config infra.Config, spec *infra.Spec) infra.Target {
 	return &TMux{
 		config: config,
+		spec:   spec,
 		ipPool: infra.NewIPPool(config.Network),
 	}
 }
@@ -19,6 +20,7 @@ func NewTMux(config infra.Config) infra.Target {
 // TMux is the target deploying apps to tmux session
 type TMux struct {
 	config  infra.Config
+	spec    *infra.Spec
 	session *tmux.Session
 	ipPool  *infra.IPPool
 }
@@ -29,7 +31,7 @@ func (t *TMux) Deploy(ctx context.Context, env infra.Set) error {
 	if err := t.session.Init(ctx); err != nil {
 		return err
 	}
-	if err := env.Deploy(ctx, t); err != nil {
+	if err := env.Deploy(ctx, t, t.spec); err != nil {
 		return err
 	}
 	if t.config.TestingMode {
@@ -40,10 +42,6 @@ func (t *TMux) Deploy(ctx context.Context, env infra.Set) error {
 
 // DeployBinary starts binary file inside tmux session
 func (t *TMux) DeployBinary(ctx context.Context, app infra.Binary) error {
-	if exists, err := t.session.HasApp(ctx, app.Name); err != nil || exists {
-		return err
-	}
-
 	var ip net.IP
 	if app.RequiresIP {
 		var err error

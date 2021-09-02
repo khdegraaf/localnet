@@ -40,8 +40,14 @@ func main() {
 			Short: "Stops environment",
 			RunE:  cmdF.Cmd(localnet.Stop),
 		}
-		addSetFlag(stopCmd, c, configF)
 		rootCmd.AddCommand(stopCmd)
+
+		destroyCmd := &cobra.Command{
+			Use:   "destroy",
+			Short: "Destroys environment",
+			RunE:  cmdF.Cmd(localnet.Destroy),
+		}
+		rootCmd.AddCommand(destroyCmd)
 
 		testsCmd := &cobra.Command{
 			Use:   "tests",

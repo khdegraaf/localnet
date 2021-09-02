@@ -2,6 +2,7 @@ package localnet
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -41,6 +42,7 @@ func Activate(ctx context.Context, configF *ConfigFactory) error {
 	must.OK(ioutil.WriteFile(config.WrapperDir+"/l", []byte(fmt.Sprintf("#!/bin/bash\nexec %s \"$@\"", exe)), 0o700))
 	must.OK(ioutil.WriteFile(config.WrapperDir+"/start", []byte(fmt.Sprintf("#!/bin/bash\nexec %s start \"$@\"", exe)), 0o700))
 	must.OK(ioutil.WriteFile(config.WrapperDir+"/stop", []byte(fmt.Sprintf("#!/bin/bash\nexec %s stop \"$@\"", exe)), 0o700))
+	must.OK(ioutil.WriteFile(config.WrapperDir+"/destroy", []byte(fmt.Sprintf("#!/bin/bash\nexec %s destroy \"$@\"", exe)), 0o700))
 	must.OK(ioutil.WriteFile(config.WrapperDir+"/tests", []byte(fmt.Sprintf("#!/bin/bash\nexec %s tests \"$@\"", exe)), 0o700))
 	must.OK(ioutil.WriteFile(config.WrapperDir+"/spec", []byte(fmt.Sprintf("#!/bin/bash\nexec %s spec \"$@\"", exe)), 0o700))
 	must.OK(ioutil.WriteFile(config.WrapperDir+"/logs", []byte(fmt.Sprintf("#!/bin/bash\nexec tail -f -n +0 \"%s/$1.log\"", config.LogDir)), 0o700))
@@ -76,13 +78,24 @@ func Start(ctx context.Context, target infra.Target, set infra.Set, spec *infra.
 }
 
 // Stop stops environment
-func Stop(ctx context.Context, target infra.Target, _ infra.Set, spec *infra.Spec) (retErr error) {
+func Stop(ctx context.Context, target infra.Target, spec *infra.Spec) (retErr error) {
 	defer func() {
 		if err := spec.Reset(); retErr == nil {
 			retErr = err
 		}
 	}()
 	return target.Stop(ctx)
+}
+
+// Destroy destroys environment
+func Destroy(ctx context.Context, config infra.Config, target infra.Target) (retErr error) {
+	if err := target.Stop(ctx); err != nil {
+		return err
+	}
+	if err := os.RemoveAll(config.HomeDir); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	return nil
 }
 
 // Tests runs integration tests

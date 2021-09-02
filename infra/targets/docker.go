@@ -62,7 +62,7 @@ func (d *Docker) DeployBinary(ctx context.Context, app infra.Binary) error {
 	ipCmd.Stdout = ipBuf
 	err := exec.Run(ctx,
 		buildCmd,
-		exec.Docker(append([]string{"run", "--name", name, "-d", image}, app.Args...)...),
+		exec.Docker(append([]string{"run", "--name", name, "-d", "--label", "finance.sifchain.localnet.env=" + d.config.EnvName, image}, app.Args...)...),
 		ipCmd,
 	)
 	if err != nil {

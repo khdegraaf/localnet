@@ -11,9 +11,10 @@ import (
 // NewTMux creates new tmux target
 func NewTMux(config infra.Config, spec *infra.Spec) infra.Target {
 	return &TMux{
-		config: config,
-		spec:   spec,
-		ipPool: infra.NewIPPool(config.Network),
+		config:  config,
+		spec:    spec,
+		session: tmux.NewSession(config.EnvName, config.LogDir),
+		ipPool:  infra.NewIPPool(config.Network),
 	}
 }
 
@@ -27,12 +28,11 @@ type TMux struct {
 
 // Stop stops running applications
 func (t *TMux) Stop(ctx context.Context) error {
-	panic("not implemented")
+	return t.session.Kill(ctx)
 }
 
 // Deploy deploys environment to tmux target
 func (t *TMux) Deploy(ctx context.Context, env infra.Set) error {
-	t.session = tmux.NewSession(t.config.EnvName, t.config.LogDir)
 	if err := t.session.Init(ctx); err != nil {
 		return err
 	}

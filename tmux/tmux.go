@@ -2,6 +2,7 @@ package tmux
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	osexec "os/exec"
 
@@ -45,8 +46,8 @@ type Session struct {
 
 // Init initializes new tmux session if none exists
 func (s *Session) Init(ctx context.Context) error {
-	if exec.Run(ctx, exec.TMuxNoOut("has-session", "-t", s.name)) == nil {
-		return nil
+	if hasSession, err := s.hasSession(ctx); err != nil || hasSession {
+		return err
 	}
 	return exec.Run(ctx, exec.TMux("new-session", "-d", "-s", s.name, "-n", "help", "bash", "-ce", "trap '' SIGINT SIGQUIT; echo '"+help+"'\nwhile :; do read -sr; done"))
 }
@@ -63,4 +64,20 @@ func (s *Session) Attach(ctx context.Context) error {
 	defer tty.Close()
 
 	return exec.Run(ctx, exec.TMuxTty(tty, "attach-session", "-t", s.name))
+}
+
+// Kill kills tmux session
+func (s *Session) Kill(ctx context.Context) error {
+	if hasSession, err := s.hasSession(ctx); err != nil || !hasSession {
+		return err
+	}
+	return exec.Run(ctx, exec.TMux("kill-session", "-t", s.name))
+}
+
+func (s *Session) hasSession(ctx context.Context) (bool, error) {
+	err := exec.Run(ctx, exec.TMuxNoOut("has-session", "-t", s.name))
+	if err != nil && errors.Is(err, ctx.Err()) {
+		return false, err
+	}
+	return err == nil, nil
 }

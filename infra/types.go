@@ -164,18 +164,25 @@ func NewSpec(config Config) *Spec {
 		panic(err)
 	}
 
-	return &Spec{
+	spec := &Spec{
 		specFile: specFile,
 		Target:   config.Target,
 		Set:      config.SetName,
 		Env:      config.EnvName,
 		Apps:     map[string]*AppDescription{},
 	}
+	if config.Target == "direct" {
+		spec.PGID = os.Getpid()
+	}
+	return spec
 }
 
 // Spec describes running environment
 type Spec struct {
 	specFile string
+
+	// PGID stores process group ID used to run apps - used only by direct target
+	PGID int `json:"pgid,omitempty"`
 
 	// Target is the name of target being used to run apps
 	Target string `json:"target"`
@@ -211,9 +218,14 @@ func (s *Spec) DescribeApp(appType string, name string) *AppDescription {
 	return appDesc
 }
 
+// String converts spec to json string
+func (s *Spec) String() string {
+	return string(must.Bytes(json.MarshalIndent(s, "", "  ")))
+}
+
 // Save saves spec into file
 func (s *Spec) Save() error {
-	return ioutil.WriteFile(s.specFile, must.Bytes(json.MarshalIndent(s, "", "  ")), 0o600)
+	return ioutil.WriteFile(s.specFile, []byte(s.String()), 0o600)
 }
 
 // AppDescription describes app running in environment

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	osexec "os/exec"
+	"syscall"
 
 	"github.com/wojciech-sif/localnet/infra"
 )
@@ -45,6 +46,11 @@ func (d *Direct) DeployBinary(ctx context.Context, app infra.Binary) error {
 		return err
 	}
 	cmd := osexec.Command("bash", "-ce", fmt.Sprintf("%s > \"%s/%s.log\" 2>&1", osexec.Command(app.Path, app.Args...).String(), d.config.LogDir, app.Name))
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: true,
+		Pgid:    d.spec.PGID,
+	}
+
 	if err := cmd.Start(); err != nil {
 		return err
 	}

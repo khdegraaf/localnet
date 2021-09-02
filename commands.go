@@ -2,8 +2,6 @@ package localnet
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -67,7 +65,7 @@ func Activate(ctx context.Context, configF *ConfigFactory) error {
 }
 
 // Start starts dev environment
-func Start(ctx context.Context, config infra.Config, target infra.Target, set infra.Set, spec *infra.Spec) (retErr error) {
+func Start(ctx context.Context, target infra.Target, set infra.Set, spec *infra.Spec) (retErr error) {
 	defer func() {
 		if err := spec.Save(); retErr == nil {
 			retErr = err
@@ -95,15 +93,7 @@ func Tests(c *ioc.Container, configF *ConfigFactory) error {
 }
 
 // Spec print specification of running environment
-func Spec(config infra.Config, _ infra.Set, spec *infra.Spec) error {
-	specContent, err := ioutil.ReadFile(config.HomeDir + "/spec.json")
-	if err != nil {
-		if !errors.Is(err, os.ErrNotExist) {
-			return err
-		}
-		fmt.Println(string(must.Bytes(json.MarshalIndent(spec, "", "  "))))
-		return nil
-	}
-	fmt.Println(string(specContent))
+func Spec(spec *infra.Spec, _ infra.Set) error {
+	fmt.Println(spec)
 	return nil
 }

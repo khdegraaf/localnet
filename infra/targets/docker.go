@@ -13,6 +13,8 @@ import (
 	"github.com/wojciech-sif/localnet/infra"
 )
 
+const labelEnv = "finance.sifchain.localnet.env"
+
 const dockerTplContent = `FROM fedora:latest
 {{ range .Copy }}
 COPY {{ . }} {{ . }}
@@ -38,7 +40,23 @@ type Docker struct {
 
 // Stop stops running applications
 func (d *Docker) Stop(ctx context.Context) error {
-	panic("not implemented")
+	buf := &bytes.Buffer{}
+	listCmd := exec.Docker("ps", "-q", "--filter", "label="+labelEnv+"="+d.config.EnvName)
+	listCmd.Stdout = buf
+	if err := exec.Run(ctx, listCmd); err != nil {
+		return err
+	}
+
+	commands := []*osexec.Cmd{}
+	for _, cID := range strings.Split(buf.String(), "\n") {
+		// last item is empty
+		if cID == "" {
+			break
+		}
+		commands = append(commands, exec.Docker("stop", "--time", "60", cID))
+	}
+	// FIXME (wojciech): parallelize this
+	return exec.Run(ctx, commands...)
 }
 
 // Deploy deploys environment to docker target
@@ -67,7 +85,7 @@ func (d *Docker) DeployBinary(ctx context.Context, app infra.Binary) error {
 	ipCmd.Stdout = ipBuf
 	err := exec.Run(ctx,
 		buildCmd,
-		exec.Docker(append([]string{"run", "--name", name, "-d", "--label", "finance.sifchain.localnet.env=" + d.config.EnvName, image}, app.Args...)...),
+		exec.Docker(append([]string{"run", "--name", name, "-d", "--label", labelEnv + "=" + d.config.EnvName, image}, app.Args...)...),
 		ipCmd,
 	)
 	if err != nil {

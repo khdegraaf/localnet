@@ -65,6 +65,7 @@ linters:
     - gci
     - forbidigo
     - gomoddirectives
+    - cyclop
 
 linters-settings:
   nakedret:

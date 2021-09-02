@@ -50,6 +50,9 @@ type Deployment struct {
 type Target interface {
 	// Deploy deploys environment to the target
 	Deploy(ctx context.Context, env Set) error
+
+	// Stop stops apps in the environment
+	Stop(ctx context.Context) error
 }
 
 // AppTarget represents target of deployment from the perspective of application
@@ -226,6 +229,14 @@ func (s *Spec) String() string {
 // Save saves spec into file
 func (s *Spec) Save() error {
 	return ioutil.WriteFile(s.specFile, []byte(s.String()), 0o600)
+}
+
+// Reset removes spec size
+func (s *Spec) Reset() error {
+	if err := os.Remove(s.specFile); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	return nil
 }
 
 // AppDescription describes app running in environment

@@ -28,12 +28,20 @@ func main() {
 
 		startCmd := &cobra.Command{
 			Use:   "start",
-			Short: "Starts dev environment",
+			Short: "Starts environment",
 			RunE:  cmdF.Cmd(localnet.Start),
 		}
 		addFlags(startCmd, configF)
 		addSetFlag(startCmd, c, configF)
 		rootCmd.AddCommand(startCmd)
+
+		stopCmd := &cobra.Command{
+			Use:   "stop",
+			Short: "Stops environment",
+			RunE:  cmdF.Cmd(localnet.Stop),
+		}
+		addSetFlag(stopCmd, c, configF)
+		rootCmd.AddCommand(stopCmd)
 
 		testsCmd := &cobra.Command{
 			Use:   "tests",

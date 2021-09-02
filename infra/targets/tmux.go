@@ -25,6 +25,11 @@ type TMux struct {
 	ipPool  *infra.IPPool
 }
 
+// Stop stops running applications
+func (t *TMux) Stop(ctx context.Context) error {
+	panic("not implemented")
+}
+
 // Deploy deploys environment to tmux target
 func (t *TMux) Deploy(ctx context.Context, env infra.Set) error {
 	t.session = tmux.NewSession(t.config.EnvName, t.config.LogDir)

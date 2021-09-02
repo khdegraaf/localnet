@@ -36,6 +36,11 @@ type Docker struct {
 	spec   *infra.Spec
 }
 
+// Stop stops running applications
+func (d *Docker) Stop(ctx context.Context) error {
+	panic("not implemented")
+}
+
 // Deploy deploys environment to docker target
 func (d *Docker) Deploy(ctx context.Context, env infra.Set) error {
 	return env.Deploy(ctx, d, d.spec)

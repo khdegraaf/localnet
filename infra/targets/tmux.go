@@ -1,13 +1,17 @@
 package targets
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"net"
 	osexec "os/exec"
+	"strconv"
+	"strings"
 	"sync"
 
+	"github.com/ridge/must"
 	"github.com/wojciech-sif/localnet/exec"
 	"github.com/wojciech-sif/localnet/infra"
 )
@@ -86,7 +90,7 @@ func (t *TMux) sessionAddApp(ctx context.Context, name string, args ...string) e
 	}
 	cmd := []string{
 		"bash", "-ce",
-		fmt.Sprintf("%s 2>&1 | tee -a \"%s/%s.log\"\nwhile :; do read -sr; done", osexec.Command("", args...).String(), t.config.LogDir, name),
+		fmt.Sprintf(`exec %s 2>&1 | tee -a "%s/%s.log"`, osexec.Command("", args...).String(), t.config.LogDir, name),
 	}
 	if hasSession {
 		return exec.Run(ctx, exec.TMux(append([]string{"new-window", "-d", "-n", name, "-t", t.config.EnvName + ":"}, cmd...)...))
@@ -102,13 +106,37 @@ func (t *TMux) sessionAttach(ctx context.Context) error {
 }
 
 func (t *TMux) sessionKill(ctx context.Context) error {
+	// When using just `tmux kill-session` tmux sends SIGHUP to process, but we need SIGTERM.
+	// After sending it to all apps, session is terminated automatically.
+
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	if hasSession, err := t.sessionExists(ctx); err != nil || !hasSession {
 		return err
 	}
-	return exec.Run(ctx, exec.TMux("kill-session", "-t", t.config.EnvName))
+	pids, err := t.sessionPIDs(ctx)
+	if err != nil || len(pids) == 0 {
+		return err
+	}
+	return exec.Kill(ctx, pids)
+}
+
+func (t *TMux) sessionPIDs(ctx context.Context) ([]int, error) {
+	buf := &bytes.Buffer{}
+	cmd := exec.TMux("list-windows", "-t", t.config.EnvName, "-F", "#{pane_pid}")
+	cmd.Stdout = buf
+	if err := exec.Run(ctx, cmd); err != nil {
+		return nil, err
+	}
+	pids := []int{}
+	for _, pidStr := range strings.Split(buf.String(), "\n") {
+		if pidStr == "" {
+			break
+		}
+		pids = append(pids, int(must.Int64(strconv.ParseInt(pidStr, 10, 32))))
+	}
+	return pids, nil
 }
 
 func (t *TMux) sessionExists(ctx context.Context) (bool, error) {

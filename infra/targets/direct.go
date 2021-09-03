@@ -14,6 +14,7 @@ import (
 	"syscall"
 
 	"github.com/ridge/must"
+	"github.com/wojciech-sif/localnet/exec"
 	"github.com/wojciech-sif/localnet/infra"
 )
 
@@ -48,6 +49,7 @@ func (d *Direct) Stop(ctx context.Context) error {
 		return err
 	}
 	reg := regexp.MustCompile("^[0-9]+$")
+	pids := []int{}
 	for _, procH := range procs {
 		if !procH.IsDir() || !reg.MatchString(procH.Name()) {
 			continue
@@ -72,20 +74,12 @@ func (d *Direct) Stop(ctx context.Context) error {
 		if pID == os.Getpid() {
 			continue
 		}
-
-		proc, err := os.FindProcess(pID)
-		if err != nil {
-			continue
-		}
-
-		// FIXME (wojciech): send sigkill after timeout
-		// FIXME (wojciech): parallelize it
-		// FIXME (wojciech): wait until process is done
-		if err := proc.Signal(syscall.SIGTERM); err != nil {
-			return err
-		}
+		pids = append(pids, pID)
 	}
-	return nil
+	if len(pids) == 0 {
+		return nil
+	}
+	return exec.Kill(ctx, pids)
 }
 
 // Destroy destroys running applications
@@ -107,7 +101,7 @@ func (d *Direct) DeployBinary(ctx context.Context, app infra.Binary) error {
 	if err := infra.PreprocessApp(ctx, ip, d.config.AppDir, app.AppBase); err != nil {
 		return err
 	}
-	cmd := osexec.Command("bash", "-ce", fmt.Sprintf("%s >> \"%s/%s.log\" 2>&1", osexec.Command(app.Path, app.Args...).String(), d.config.LogDir, app.Name))
+	cmd := osexec.Command("bash", "-ce", fmt.Sprintf(`exec %s >> "%s/%s.log" 2>&1`, osexec.Command(app.Path, app.Args...).String(), d.config.LogDir, app.Name))
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
 		Pgid:    d.spec.PGID,

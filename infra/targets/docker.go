@@ -59,6 +59,28 @@ func (d *Docker) Stop(ctx context.Context) error {
 	return exec.Run(ctx, commands...)
 }
 
+// Destroy destroys running applications
+func (d *Docker) Destroy(ctx context.Context) error {
+	buf := &bytes.Buffer{}
+	listCmd := exec.Docker("ps", "-q", "-a", "--filter", "label="+labelEnv+"="+d.config.EnvName)
+	listCmd.Stdout = buf
+	if err := exec.Run(ctx, listCmd); err != nil {
+		return err
+	}
+
+	commands := []*osexec.Cmd{}
+	for _, cID := range strings.Split(buf.String(), "\n") {
+		// last item is empty
+		if cID == "" {
+			break
+		}
+		commands = append(commands, exec.Docker("stop", "--time", "60", cID))
+		commands = append(commands, exec.Docker("rm", cID))
+	}
+	// FIXME (wojciech): parallelize this
+	return exec.Run(ctx, commands...)
+}
+
 // Deploy deploys environment to docker target
 func (d *Docker) Deploy(ctx context.Context, env infra.Set) error {
 	return env.Deploy(ctx, d, d.spec)

@@ -31,6 +31,11 @@ func (t *TMux) Stop(ctx context.Context) error {
 	return t.session.Kill(ctx)
 }
 
+// Destroy destroys running applications
+func (t *TMux) Destroy(ctx context.Context) error {
+	return t.Stop(ctx)
+}
+
 // Deploy deploys environment to tmux target
 func (t *TMux) Deploy(ctx context.Context, env infra.Set) error {
 	if err := t.session.Init(ctx); err != nil {

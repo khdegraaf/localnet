@@ -88,6 +88,11 @@ func (d *Direct) Stop(ctx context.Context) error {
 	return nil
 }
 
+// Destroy destroys running applications
+func (d *Direct) Destroy(ctx context.Context) error {
+	return d.Stop(ctx)
+}
+
 // DeployBinary starts binary file inside os process
 func (d *Direct) DeployBinary(ctx context.Context, app infra.Binary) error {
 	var ip net.IP

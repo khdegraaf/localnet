@@ -53,6 +53,9 @@ type Target interface {
 
 	// Stop stops apps in the environment
 	Stop(ctx context.Context) error
+
+	// Destroy destroys apps in the environment
+	Destroy(ctx context.Context) error
 }
 
 // AppTarget represents target of deployment from the perspective of application

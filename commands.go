@@ -89,7 +89,7 @@ func Stop(ctx context.Context, target infra.Target, spec *infra.Spec) (retErr er
 
 // Destroy destroys environment
 func Destroy(ctx context.Context, config infra.Config, target infra.Target) (retErr error) {
-	if err := target.Stop(ctx); err != nil {
+	if err := target.Destroy(ctx); err != nil {
 		return err
 	}
 	if err := os.RemoveAll(config.HomeDir); err != nil && !errors.Is(err, os.ErrNotExist) {

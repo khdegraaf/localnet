@@ -90,7 +90,7 @@ func (t *TMux) sessionAddApp(ctx context.Context, name string, args ...string) e
 	}
 	cmd := []string{
 		"bash", "-ce",
-		fmt.Sprintf(`exec %s 2>&1 | tee -a "%s/%s.log"`, osexec.Command("", args...).String(), t.config.LogDir, name),
+		fmt.Sprintf(`exec %s > >(tee -a "%s/%s.log") 2>&1`, osexec.Command("", args...).String(), t.config.LogDir, name),
 	}
 	if hasSession {
 		return exec.Run(ctx, exec.TMux(append([]string{"new-window", "-d", "-n", name, "-t", t.config.EnvName + ":"}, cmd...)...))

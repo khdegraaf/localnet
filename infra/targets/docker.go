@@ -97,8 +97,8 @@ func (d *Docker) DeployBinary(ctx context.Context, app infra.Binary) error {
 		return err
 	}
 
-	image := app.Name + ":latest"
-	buildCmd := exec.Docker("build", "--tag", image, "-f-", "/")
+	image := d.config.EnvName + "/" + app.Name + ":latest"
+	buildCmd := exec.Docker("build", "--tag", image, "--label", labelEnv+"="+d.config.EnvName, "-f-", "/")
 	buildCmd.Stdin = buf
 
 	name := d.config.EnvName + "-" + app.Name

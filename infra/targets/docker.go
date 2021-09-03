@@ -61,24 +61,10 @@ func (d *Docker) Stop(ctx context.Context) error {
 
 // Destroy destroys running applications
 func (d *Docker) Destroy(ctx context.Context) error {
-	buf := &bytes.Buffer{}
-	listCmd := exec.Docker("ps", "-q", "-a", "--filter", "label="+labelEnv+"="+d.config.EnvName)
-	listCmd.Stdout = buf
-	if err := exec.Run(ctx, listCmd); err != nil {
+	if err := d.dropContainers(ctx); err != nil {
 		return err
 	}
-
-	commands := []*osexec.Cmd{}
-	for _, cID := range strings.Split(buf.String(), "\n") {
-		// last item is empty
-		if cID == "" {
-			break
-		}
-		commands = append(commands, exec.Docker("stop", "--time", "60", cID))
-		commands = append(commands, exec.Docker("rm", cID))
-	}
-	// FIXME (wojciech): parallelize this
-	return exec.Run(ctx, commands...)
+	return d.dropImages(ctx)
 }
 
 // Deploy deploys environment to docker target
@@ -126,4 +112,45 @@ func (d *Docker) DeployBinary(ctx context.Context, app infra.Binary) error {
 // DeployContainer starts container in docker
 func (d *Docker) DeployContainer(ctx context.Context, app infra.Container) error {
 	panic("not implemented yet")
+}
+
+func (d *Docker) dropContainers(ctx context.Context) error {
+	buf := &bytes.Buffer{}
+	listCmd := exec.Docker("ps", "-q", "-a", "--filter", "label="+labelEnv+"="+d.config.EnvName)
+	listCmd.Stdout = buf
+	if err := exec.Run(ctx, listCmd); err != nil {
+		return err
+	}
+
+	commands := []*osexec.Cmd{}
+	for _, cID := range strings.Split(buf.String(), "\n") {
+		// last item is empty
+		if cID == "" {
+			break
+		}
+		commands = append(commands, exec.Docker("stop", "--time", "60", cID))
+		commands = append(commands, exec.Docker("rm", cID))
+	}
+	// FIXME (wojciech): parallelize this
+	return exec.Run(ctx, commands...)
+}
+
+func (d *Docker) dropImages(ctx context.Context) error {
+	buf := &bytes.Buffer{}
+	listCmd := exec.Docker("images", "-q", "--filter", "label="+labelEnv+"="+d.config.EnvName)
+	listCmd.Stdout = buf
+	if err := exec.Run(ctx, listCmd); err != nil {
+		return err
+	}
+
+	commands := []*osexec.Cmd{}
+	for _, imageID := range strings.Split(buf.String(), "\n") {
+		// last item is empty
+		if imageID == "" {
+			break
+		}
+		commands = append(commands, exec.Docker("rmi", "-f", imageID))
+	}
+	// FIXME (wojciech): parallelize this
+	return exec.Run(ctx, commands...)
 }

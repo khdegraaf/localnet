@@ -107,7 +107,7 @@ func (d *Direct) DeployBinary(ctx context.Context, app infra.Binary) error {
 	if err := infra.PreprocessApp(ctx, ip, d.config.AppDir, app.AppBase); err != nil {
 		return err
 	}
-	cmd := osexec.Command("bash", "-ce", fmt.Sprintf("%s > \"%s/%s.log\" 2>&1", osexec.Command(app.Path, app.Args...).String(), d.config.LogDir, app.Name))
+	cmd := osexec.Command("bash", "-ce", fmt.Sprintf("%s >> \"%s/%s.log\" 2>&1", osexec.Command(app.Path, app.Args...).String(), d.config.LogDir, app.Name))
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
 		Pgid:    d.spec.PGID,

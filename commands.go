@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/ridge/must"
 	"github.com/wojciech-malota-wojcik/ioc"
@@ -92,10 +93,21 @@ func Destroy(ctx context.Context, config infra.Config, target infra.Target) (ret
 	if err := target.Destroy(ctx); err != nil {
 		return err
 	}
-	if err := os.RemoveAll(config.HomeDir); err != nil && !errors.Is(err, os.ErrNotExist) {
-		return err
+
+	// It may happen that some files are flushed to disk even after processes are terminated
+	// so let's try to delete dir a few times
+	var err error
+	for i := 0; i < 3; i++ {
+		if err = os.RemoveAll(config.HomeDir); err == nil || errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(time.Second):
+		}
 	}
-	return nil
+	return err
 }
 
 // Tests runs integration tests
